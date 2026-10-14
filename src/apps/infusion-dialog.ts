@@ -235,6 +235,16 @@ export class InfusionDialog extends HtmlApp {
                   )
                   .join('')
             : `<li class="sci-empty">${t('SCI.Dialog.NoTargets')}</li>`;
+        // Surge size: tokens larger than the surge's maximum size can't normally be infused.
+        const tooLarge =
+            scaling && s.kind !== 'self'
+                ? s.targets.filter((tg) => {
+                      const doc = tg.uuid ? fromUuidSync(tg.uuid, { strict: false }) : null;
+                      if (doc?.documentName !== 'Token') return false;
+                      const feet = Math.max(doc.width ?? 1, doc.height ?? 1) * (doc.parent?.grid?.distance ?? 5);
+                      return feet > scaling.feet;
+                  })
+                : [];
         const tooMany = s.maxTargets > 0 ? s.targets.length > s.maxTargets : s.targets.length > 1 && s.kind !== 'area';
 
         const optionRows: string[] = [];
@@ -261,6 +271,7 @@ export class InfusionDialog extends HtmlApp {
                 usesPool
                     ? `<fieldset><legend>${t('SCI.Field.Targets')}</legend>
                 <ul class="sci-targets">${targetList}</ul>
+                ${tooLarge.length ? `<p class="sci-warning">${t('SCI.Dialog.TooLarge', { names: esc(tooLarge.map((tg) => tg.name).join(', ')), size: t(`SCI.Size.${scaling!.size}`) })}</p>` : ''}
                 ${tooMany ? `<p class="sci-warning">${t('SCI.Dialog.TooManyTargets', { max: Math.max(1, s.maxTargets) })}</p>` : ''}
                 <div class="sci-buttons"><button type="button" data-sci-action="useTargets"><i class="fa-solid fa-bullseye"></i> ${t('SCI.Dialog.UseTargets')}</button>
                 <button type="button" data-sci-action="addTextTarget"><i class="fa-solid fa-font"></i> ${t('SCI.Dialog.AddTextTarget')}</button></div>

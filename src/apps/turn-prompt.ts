@@ -9,6 +9,14 @@ import { checked, esc, intValue, t } from '@/utils';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+/** Turn-start windows open on this client. */
+const openPrompts = new Set<TurnPrompt>();
+
+/** Closes every open turn-start window on this client (each continues with what was entered so far). */
+export function forceContinueAll() {
+    for (const prompt of [...openPrompts]) void prompt.close();
+}
+
 export class TurnPrompt extends HtmlApp {
     static DEFAULT_OPTIONS = {
         id: 'sci-turn-prompt-{id}',
@@ -31,6 +39,7 @@ export class TurnPrompt extends HtmlApp {
         const app = new TurnPrompt(actor, infusions, caster);
         return new Promise((resolve) => {
             app.resolve = resolve;
+            openPrompts.add(app);
             void app.render({ force: true });
         });
     }
@@ -40,6 +49,7 @@ export class TurnPrompt extends HtmlApp {
     }
 
     async close(options?: any) {
+        openPrompts.delete(this);
         this.resolve?.(this.decisions);
         this.resolve = null;
         return super.close(options);

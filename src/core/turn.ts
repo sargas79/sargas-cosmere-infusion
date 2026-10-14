@@ -7,7 +7,7 @@
  * player who owns the actor, otherwise the GM. Exactly one client runs it, so the drain happens once.
  */
 import { MODULE_HOOKS, SYSTEM_ID } from '@/constants';
-import { TurnPrompt } from '@/apps/turn-prompt';
+import { TurnPrompt, forceContinueAll } from '@/apps/turn-prompt';
 import { allActors, casterState, preferredRunner } from '@/core/actor-data';
 import { advanceTime, onInvestitureChanged, resolveTurnStart, type TurnDecisions } from '@/core/engine';
 import { asUser, registerHandler } from '@/core/relay';
@@ -65,6 +65,13 @@ export async function requestTurnStart(actor: any) {
     const runner = preferredRunner(actor) ?? game.users.activeGM;
     if (!runner?.active) return;
     await asUser(runner.id, 'turnStart', { actorUuid: actor.uuid });
+}
+
+/** GM: closes every open turn-start window on every client, so a player who stepped away doesn't block the drain. */
+export async function forceContinueEveryone() {
+    for (const user of game.users) {
+        if (user.active) await asUser(user.id, 'forceContinue', {});
+    }
 }
 
 /** Out of combat: one round passes for every actor with infusions. */
@@ -127,6 +134,7 @@ function onUpdateActor(actor: any, changes: any, options: any, userId: string) {
 }
 
 export function initTurns() {
+    registerHandler('forceContinue', () => forceContinueAll());
     registerHandler('turnStart', async (payload: { actorUuid: string }) => {
         const actor = await fromUuid(payload.actorUuid);
         if (actor) await runTurnStart(actor);

@@ -14,6 +14,7 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 - [ ] Binding Strike only opens one window (from the triggered Adhesion use).
 - [ ] Use Enhance: an upkeep entry is created without a window. Using it again doesn't add a second one.
 - [ ] Item sheet sun button → *Never* stops the window for that item. *Always* forces it on a homebrew action.
+- [ ] Targeting a token larger than your surge size shows a warning in the New infusion window.
 - [ ] The chat card of a surge use has a *Create infusion* button for the owner only.
 
 ## Talents
@@ -49,6 +50,7 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 - [ ] Double drain: drains 2 next round, then back to 1.
 - [ ] Damage on a Fine Control infusion down to 0 health ends it.
 - [ ] *End all* clears everything.
+- [ ] *Continue all turn windows* closes a turn-start window left open on a player's client, and its drain runs.
 
 ## Time
 - [ ] Simple illusion (10 min): advancing world time by 1 hour drains it 6 times.

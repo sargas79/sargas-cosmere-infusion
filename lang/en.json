@@ -113,7 +113,8 @@
       "StoredInGem": "Stored in a gem (Lingering Lightweavings)",
       "PhysicalIllusion": "Physical illusion",
       "HealthHint": "Fine Control objects and physical illusions end at 0 health.",
-      "EditPoolHint": "Editing doesn't charge or refund the caster; use Add Investiture or Reclaim for that."
+      "EditPoolHint": "Editing doesn't charge or refund the caster; use Add Investiture or Reclaim for that.",
+      "TooLarge": "Larger than your surge size ({size}): {names}."
     },
     "Hint": {
       "AutoSuccessHeld": "Automatically succeeds on an object the target holds or wears.",
@@ -170,7 +171,8 @@
       "EndAll": "End all infusions",
       "EndAllConfirm": "End every active infusion (for example at the end of a scene)?",
       "Highstorm": "Highstorm",
-      "DrainHint": "Advance round sends each caster their start-of-turn window. Drain and double drain are GM tools."
+      "DrainHint": "Advance round sends each caster their start-of-turn window; Continue all closes windows left open by players who stepped away. Drain and double drain are GM tools.",
+      "ForceContinue": "Continue all turn windows"
     },
     "ItemConfig": {
       "Title": "Infusion settings",

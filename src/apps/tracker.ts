@@ -4,7 +4,7 @@ import { HtmlApp } from '@/apps/base';
 import { bindListActions, renderInfusionRows } from '@/apps/infusion-list';
 import { allActors, casterState } from '@/core/actor-data';
 import { commit, getInfusions } from '@/core/store';
-import { advanceRoundForAll } from '@/core/turn';
+import { advanceRoundForAll, forceContinueEveryone } from '@/core/turn';
 import { highstorm } from '@/integrations/spheres';
 import { getSetting, setSetting, type SceneMode } from '@/settings';
 import { esc, options, t } from '@/utils';
@@ -73,6 +73,7 @@ export class InfusionTracker extends HtmlApp {
             <p class="hint">${t(`SCI.SceneMode.${mode}Hint`)}</p>
             <div class="sci-buttons">
                 <button type="button" data-sci-action="advance"><i class="fa-solid fa-forward-step"></i> ${t('SCI.Tracker.Advance')}</button>
+                <button type="button" data-sci-action="forceContinue"><i class="fa-solid fa-forward"></i> ${t('SCI.Tracker.ForceContinue')}</button>
                 <button type="button" data-sci-action="endAll"><i class="fa-solid fa-power-off"></i> ${t('SCI.Tracker.EndAll')}</button>
                 ${getSetting('sphereTracking') ? `<button type="button" data-sci-action="highstorm"><i class="fa-solid fa-cloud-bolt"></i> ${t('SCI.Tracker.Highstorm')}</button>` : ''}
             </div>
@@ -108,6 +109,9 @@ export class InfusionTracker extends HtmlApp {
                 }
                 break;
             }
+            case 'forceContinue':
+                await forceContinueEveryone();
+                break;
             case 'highstorm':
                 await highstorm();
                 break;
