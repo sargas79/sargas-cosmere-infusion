@@ -1,0 +1,197 @@
+/* Cosmere Infusions */
+.sci-app .window-content {
+    padding: 0.5rem 0.75rem;
+}
+
+.sci-form .form-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.25rem 0;
+}
+.sci-form .form-group > label {
+    flex: 0 0 45%;
+}
+.sci-form .form-group.stacked {
+    flex-direction: column;
+    align-items: stretch;
+}
+.sci-form fieldset {
+    margin: 0.5rem 0;
+    padding: 0.25rem 0.5rem;
+}
+.sci-form .hint,
+.sci-hint {
+    font-size: 0.85em;
+    opacity: 0.8;
+    margin: 0.25rem 0;
+}
+.sci-warning {
+    color: #c0392b;
+    font-size: 0.9em;
+}
+.sci-talents {
+    font-size: 0.9em;
+    font-style: italic;
+}
+.sci-footer,
+.sci-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.sci-footer > button,
+.sci-buttons > button {
+    flex: 1;
+}
+
+.sci-targets {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.sci-targets li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.sci-targets img {
+    width: 24px;
+    height: 24px;
+    border: none;
+}
+.sci-targets span {
+    flex: 1;
+}
+
+.sci-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.sci-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+}
+.sci-row .sci-main {
+    flex: 1;
+    min-width: 0;
+}
+.sci-pool {
+    flex: 0 0 auto;
+    min-width: 2rem;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.1em;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    background: rgba(58, 143, 216, 0.2);
+}
+.sci-pool.sci-self {
+    font-size: 0.75em;
+    font-weight: normal;
+}
+.sci-tag {
+    display: inline-block;
+    font-size: 0.75em;
+    padding: 0 0.3rem;
+    margin-left: 0.2rem;
+    border-radius: 3px;
+    background: rgba(127, 127, 127, 0.2);
+}
+.sci-surge {
+    opacity: 0.7;
+}
+.sci-health {
+    font-size: 0.85em;
+    color: #c0392b;
+}
+.sci-controls {
+    display: flex;
+    gap: 0.35rem;
+}
+.sci-btn {
+    cursor: pointer;
+    opacity: 0.8;
+}
+.sci-btn:hover {
+    opacity: 1;
+    text-shadow: 0 0 6px #3a8fd8;
+}
+.sci-empty {
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.sci-section {
+    margin: 0.5rem 0;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid rgba(58, 143, 216, 0.45);
+    border-radius: 6px;
+}
+.sci-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.sci-section-header h3 {
+    margin: 0;
+    border: none;
+}
+
+.sci-table {
+    width: 100%;
+}
+.sci-table td,
+.sci-table th {
+    text-align: center;
+    vertical-align: middle;
+}
+.sci-table td.sci-label {
+    text-align: left;
+}
+.sci-table input[type='number'] {
+    width: 3.5rem;
+}
+
+.sci-toolbar {
+    display: flex;
+    gap: 1rem;
+}
+.sci-group h3 small {
+    font-weight: normal;
+    opacity: 0.7;
+}
+.sci-code {
+    font-family: monospace;
+    font-size: 0.85em;
+    white-space: pre;
+    max-height: 300px;
+    overflow: auto;
+}
+.sci-squire {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    font-size: 0.9em;
+}
+
+.sci-chat h4 {
+    margin: 0 0 0.25rem;
+}
+.sci-chat ul {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+.sci-chat-inv {
+    margin: 0.25rem 0 0;
+    font-weight: bold;
+}
+.sci-chat-create {
+    margin-top: 0.4rem;
+    width: 100%;
+}

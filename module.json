@@ -1,0 +1,28 @@
+{
+  "id": "sargas-cosmere-infusion",
+  "title": "Cosmere Infusions",
+  "description": "Tracks Radiant infusions for the Cosmere RPG system: Investiture infused into objects, characters or yourself by surges, drained each round, topped up, reclaimed and ended.",
+  "version": "0.1.0",
+  "authors": [{ "name": "sargas79", "url": "https://github.com/sargas79" }],
+  "compatibility": { "minimum": "13.346", "verified": "13.351", "maximum": "13" },
+  "relationships": {
+    "systems": [
+      { "id": "cosmere-rpg", "type": "system", "compatibility": { "minimum": "3.1.0" } }
+    ],
+    "recommends": [
+      {
+        "id": "cosmere-rpg-stormlight-handbook",
+        "type": "module",
+        "reason": "Provides the surges and talents that Cosmere Infusions detects automatically."
+      }
+    ]
+  },
+  "esmodules": ["main.js"],
+  "styles": ["style.css"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
+  "socket": true,
+  "url": "https://github.com/sargas79/sargas-cosmere-infusion",
+  "bugs": "https://github.com/sargas79/sargas-cosmere-infusion/issues",
+  "manifest": "https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/module.json",
+  "download": "https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/module.zip"
+}
