@@ -1,4 +1,4 @@
 node_modules/
 dist/
 *.zip
-.claude/worktrees/
+.claude/
