@@ -209,6 +209,11 @@ export function resolveTurnStart(
 export interface TurnEndOptions {
     /** Upkeep is free this turn (Speak the Second Ideal makes Enhance free). */
     free?: boolean;
+    /**
+     * Combat round of the turn that is ending. End-of-turn upkeeps created in that round were used this
+     * turn: Enhance lasts until the end of your *next* turn, so they aren't paid yet.
+     */
+    graceRound?: number | null;
 }
 
 /**
@@ -228,6 +233,7 @@ export function resolveTurnEnd(
     }
     for (const inf of [...w.alive.values()]) {
         if (inf.timing !== 'end') continue;
+        if (options.graceRound != null && inf.createdAt.round === options.graceRound) continue;
         if (options.free) w.log.push({ type: 'free', id: inf.id, label: nameOf(inf) });
         else drainOnce(w, inf);
     }

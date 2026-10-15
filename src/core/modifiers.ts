@@ -153,3 +153,19 @@ export function subEffectsFor(
             return { key, preset, changes: upgraded ? preset.upgrade!.changes : (preset.changes ?? []), upgraded };
         });
 }
+
+/**
+ * Regrowth healing formula: `base` (1d4 + Progression modifier, the die growing with ranks) plus the
+ * healing bonuses of the caster's talents (Swift Healer: Medicine ranks; Applied Medicine: Lore ranks).
+ */
+export function regrowthFormula(
+    base: string,
+    talentIds: readonly string[],
+    bonusTalents: Record<string, string>,
+    formulas: Record<string, string>,
+): string {
+    const bonuses = Object.entries(bonusTalents)
+        .filter(([id, key]) => talentIds.includes(id) && formulas[key])
+        .map(([, key]) => `(${formulas[key]})`);
+    return bonuses.length ? `(${base}) + ${bonuses.join(' + ')}` : base;
+}

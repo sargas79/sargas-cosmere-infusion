@@ -232,6 +232,15 @@ describe('end-of-turn upkeep (Enhance)', () => {
         const r = resolveTurnEnd(caster(0), [enhance()]);
         expect(r.log).toContainEqual({ type: 'ended', id: 'Enhance', label: 'Enhance', reason: 'non-invested' });
     });
+
+    it('is not paid at the end of the turn it was used in (it lasts until the end of the next turn)', () => {
+        const used = inf({ label: 'Enhance', surge: 'upkeep', kind: 'upkeep', timing: 'end', createdAt: { round: 2, worldTime: 0 } });
+        const sameTurn = resolveTurnEnd(caster(3), [used], {}, { graceRound: 2 });
+        expect(sameTurn.inv).toBe(3);
+        expect(sameTurn.infusions).toHaveLength(1);
+        const nextTurn = resolveTurnEnd(caster(3), [used], {}, { graceRound: 3 });
+        expect(nextTurn.inv).toBe(2);
+    });
 });
 
 describe('durationLeft', () => {

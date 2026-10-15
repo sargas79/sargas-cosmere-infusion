@@ -66,10 +66,14 @@ export async function runTurnStart(actor: any, { prompt = getSetting('promptOnTu
  * Runs the end-of-turn flow on this client: end-of-turn upkeeps (Enhance) are maintained or ended.
  * No window when the upkeep is free (Speak the Second Ideal) or can't be paid (it ends).
  */
-export async function runTurnEnd(actor: any, { prompt = getSetting('promptOnTurn') } = {}): Promise<void> {
+export async function runTurnEnd(
+    actor: any,
+    { prompt = getSetting('promptOnTurn'), round = null as number | null } = {},
+): Promise<void> {
     const key = `${actor?.uuid}:end`;
     if (!actor || running.has(key)) return;
-    const asked = getInfusions(actor).filter((i) => i.timing === 'end');
+    // Enhance lasts until the end of your next turn: the turn it was used in doesn't ask for upkeep.
+    const asked = getInfusions(actor).filter((i) => i.timing === 'end' && !(round != null && i.createdAt.round === round));
     if (!asked.length) return;
     running.add(key);
     try {
@@ -77,7 +81,7 @@ export async function runTurnEnd(actor: any, { prompt = getSetting('promptOnTurn
         const free = freeEnhanceUpkeep(actor);
         let decisions: TurnDecisions = {};
         if (prompt && !free && state.inv >= 1) decisions = await TurnPrompt.ask(actor, asked, state, 'end');
-        const result = resolveTurnEnd(casterState(actor), getInfusions(actor), decisions, { free });
+        const result = resolveTurnEnd(casterState(actor), getInfusions(actor), decisions, { free, graceRound: round });
         await commit(actor, result, { chat: t('SCI.Chat.TurnStart') });
     } finally {
         running.delete(key);
@@ -92,24 +96,25 @@ export async function requestTurnStart(actor: any) {
 }
 
 /** Sends the end-of-turn flow to the right user, if the actor has end-of-turn upkeep. */
-async function requestTurnEnd(actor: any) {
+async function requestTurnEnd(actor: any, round: number | null) {
     if (!actor || !getInfusions(actor).some((i) => i.timing === 'end')) return;
     const runner = preferredRunner(actor) ?? game.users.activeGM;
     if (!runner?.active) return;
-    await asUser(runner.id, 'turnEnd', { actorUuid: actor.uuid });
+    await asUser(runner.id, 'turnEnd', { actorUuid: actor.uuid, round });
 }
 
 /**
  * Combatant whose turn is under way, per combat. cosmere-rpg has no current turn: a turn ends when
  * another combatant is activated or the round ends. Every client tracks it from the activation updates.
  */
-const currentTurn = new Map<string, string>();
+const currentTurn = new Map<string, { combatantId: string; round: number | null }>();
 
 /** Ends the turn of the combatant that was acting in `combat` (this client made the change). */
 function endCurrentTurn(combat: any, notify: boolean) {
-    const previous = combat.combatants.get(currentTurn.get(combat.id) ?? '');
+    const turn = currentTurn.get(combat.id);
+    const previous = combat.combatants.get(turn?.combatantId ?? '');
     currentTurn.delete(combat.id);
-    if (notify && previous?.actor && getSetting('triggerMode') !== 'manual') void requestTurnEnd(previous.actor);
+    if (notify && previous?.actor && getSetting('triggerMode') !== 'manual') void requestTurnEnd(previous.actor, turn?.round ?? null);
 }
 
 /** GM: closes every open turn-start window on every client, so a player who stepped away doesn't block the drain. */
@@ -135,8 +140,8 @@ function onUpdateCombatant(combatant: any, changes: any, _options: any, userId: 
 
     const mine = userId === game.user.id;
     const combat = combatant.parent;
-    if (combat && currentTurn.get(combat.id) !== combatant.id) endCurrentTurn(combat, mine);
-    if (combat) currentTurn.set(combat.id, combatant.id);
+    if (combat && currentTurn.get(combat.id)?.combatantId !== combatant.id) endCurrentTurn(combat, mine);
+    if (combat) currentTurn.set(combat.id, { combatantId: combatant.id, round: combat.round ?? null });
 
     const mode = getSetting('triggerMode');
     if (!mine || mode === 'manual' || !combatant.actor) return;
@@ -192,9 +197,9 @@ export function initTurns() {
         const actor = await fromUuid(payload.actorUuid);
         if (actor) await runTurnStart(actor);
     });
-    registerHandler('turnEnd', async (payload: { actorUuid: string }) => {
+    registerHandler('turnEnd', async (payload: { actorUuid: string; round?: number | null }) => {
         const actor = await fromUuid(payload.actorUuid);
-        if (actor) await runTurnEnd(actor);
+        if (actor) await runTurnEnd(actor, { round: payload.round ?? null });
     });
     Hooks.on('updateCombatant', onUpdateCombatant);
     Hooks.on('updateCombat', onUpdateCombat);

@@ -55,7 +55,10 @@ export const DEFAULT_SURGE_ACTION_IDS: Record<string, SurgeKey> = {
     transportation: 'trp',
 };
 
-/** Goal `system.id` that makes Enhance upkeep free once completed (matched by name as well). */
+/**
+ * Goal `system.id` prefix that makes Enhance upkeep free once completed. Goal ids carry the order
+ * (`speak-the-second-ideal-windrunner`); the goal name is matched as well.
+ */
 export const SECOND_IDEAL_GOAL = 'speak-the-second-ideal';
 
 /** Talent and action ids that create an infusion themselves (not through a surge action). */
@@ -148,11 +151,20 @@ export interface SubEffectPreset {
     img?: string;
     /** Status id applied by the effect (e.g. restrained). */
     status?: string;
+    /**
+     * Changes applied to the infused character. Values may use the caster's roll data, e.g.
+     * `@skills.prg.mod`; they are resolved when the effect is created or updated.
+     */
     changes?: EffectChange[];
     /** Caster talent that replaces `changes` (Flying Ace, Clothsmith). */
     upgrade?: { talent: string; changes: EffectChange[] };
     /** Rolls the caster's Regrowth healing when the infused character is activated in combat. */
     regrowth?: boolean;
+    /**
+     * Only one effect with this key counts on a character at a time (a character's Physical defense can't
+     * benefit from more than one Tension surge): extra copies are created disabled.
+     */
+    exclusive?: boolean;
 }
 
 const walkBonus = (feet: number): EffectChange[] => [{ key: 'system.movement.walk.rate.bonus', mode: EFFECT_MODES.add, value: String(feet) }];
@@ -161,10 +173,12 @@ const physicalDefense = (bonus: number): EffectChange[] => [{ key: 'system.defen
 
 /** Keys are effect ids; names are localized from `SCI.Effect.<id>`. */
 export const DEFAULT_SUB_EFFECTS: Record<string, SubEffectPreset> = {
-    skate: { surge: 'abr', kinds: ['self', 'character'], img: 'icons/svg/ice-aura.svg' },
+    // Infusing your own body with Abrasion grants Skate and Slide.
+    skate: { surge: 'abr', kinds: ['self'], img: 'icons/svg/ice-aura.svg' },
+    slide: { surge: 'abr', kinds: ['self'], img: 'icons/svg/thrust.svg' },
     'frictionless-motion': {
         surge: 'abr',
-        kinds: ['self', 'character'],
+        kinds: ['self'],
         requires: 'frictionless-motion',
         img: 'icons/svg/upgrade.svg',
         changes: walkBonus(10),
@@ -177,23 +191,44 @@ export const DEFAULT_SUB_EFFECTS: Record<string, SubEffectPreset> = {
         changes: fly(25),
         upgrade: { talent: 'flying-ace', changes: fly(40) },
     },
-    regrowth: { surge: 'prg', kinds: ['self', 'character'], img: 'icons/svg/regen.svg', regrowth: true },
+    // Regrowth targets another living character; it heals at the start of each of their turns.
+    regrowth: { surge: 'prg', kinds: ['character'], img: 'icons/svg/regen.svg', regrowth: true },
+    // Swift Regeneration: your Regrowth targets add your Progression modifier to injury rolls.
+    'swift-regeneration': {
+        surge: 'prg',
+        kinds: ['character'],
+        requires: 'swift-regeneration',
+        img: 'icons/svg/heal.svg',
+        changes: [{ key: 'system.injuryRollBonus', mode: EFFECT_MODES.add, value: '@skills.prg.mod' }],
+    },
     'hardened-defense': {
         surge: 'tsn',
         kinds: ['object', 'character', 'area'],
         img: 'icons/svg/shield.svg',
         changes: physicalDefense(2),
         upgrade: { talent: 'clothsmith', changes: physicalDefense(4) },
+        exclusive: true,
     },
 };
 
-/** Roll formulas, evaluated with the caster's roll data. */
+/**
+ * Roll formulas, evaluated with the caster's roll data plus `@sci.prgDie` (the caster's Progression surge
+ * die from the Surge Scaling table: d4 at 1 rank, d6 at 2, ...).
+ */
 export const DEFAULT_FORMULAS = {
-    /** Regrowth healing, used when the Progression action has no healing formula of its own. */
-    regrowth: '@scalar.power.prg.die + @skills.prg.mod',
-    /** Added to Regrowth healing when the caster has Swift Healer. */
+    /** Regrowth healing (1d4 + Progression modifier, die scaling with ranks), when the action has no formula. */
+    regrowth: '1@sci.prgDie + @skills.prg.mod',
+    /** Swift Healer: healing abilities restore extra health equal to the caster's Medicine ranks. */
     swiftHealer: '@skills.med.rank',
+    /** Applied Medicine: healing abilities restore extra health equal to the caster's Lore ranks. */
+    appliedMedicine: '@skills.lor.rank',
 };
 
-/** Talent `system.id` that adds `DEFAULT_FORMULAS.swiftHealer` to Regrowth. */
-export const SWIFT_HEALER = 'swift-healer';
+/** Caster talents (`system.id`) that add a formula from `DEFAULT_FORMULAS` to Regrowth healing. */
+export const HEALING_BONUS_TALENTS: Record<string, keyof typeof DEFAULT_FORMULAS> = {
+    'swift-healer': 'swiftHealer',
+    'applied-medicine': 'appliedMedicine',
+};
+
+/** Caster talents that change how Skate works (Smooth Operator: 1 fewer focus; Graceful Skating: any path). */
+export const SKATE_TALENTS = { cheaper: 'smooth-operator', anyPath: 'graceful-skating' } as const;

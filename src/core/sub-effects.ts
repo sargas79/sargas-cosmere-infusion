@@ -4,12 +4,12 @@
  * removed with the infusion, like markers; the effect's `disabled` state is left to the user.
  */
 import { FLAGS, MARKER_ICON, MODULE_ID } from '@/constants';
-import { parseInfusions, type Infusion } from '@/data/infusion';
-import { SWIFT_HEALER } from '@/data/presets';
-import { actorTalents, isSquire, preferredRunner } from '@/core/actor-data';
+import { parseInfusions, surgeScaling, type Infusion } from '@/data/infusion';
+import { HEALING_BONUS_TALENTS, SKATE_TALENTS, type EffectChange } from '@/data/presets';
+import { actorTalents, isSquire, preferredRunner, surgeRanks } from '@/core/actor-data';
 import { getMapping } from '@/core/mapping';
 import { targetActor } from '@/core/markers';
-import { subEffectsFor } from '@/core/modifiers';
+import { regrowthFormula, subEffectsFor } from '@/core/modifiers';
 import { asGM, asUser, registerHandler } from '@/core/relay';
 import { getSetting } from '@/settings';
 import { t, warn } from '@/utils';
@@ -46,18 +46,62 @@ export function infusedActors(caster: any, inf: Infusion): any[] {
 
 const statusIcon = (id: string): string | undefined => CONFIG.statusEffects?.find?.((s: any) => s.id === id)?.img;
 
+/** The caster's roll data plus `sci.prgDie` (Progression surge die from the Surge Scaling table). */
+function casterRollData(caster: any): any {
+    const die = surgeScaling(surgeRanks(caster).prg ?? 1)?.die ?? 'd4';
+    return { ...(caster.getRollData?.() ?? {}), sci: { prgDie: die } };
+}
+
+/** Resolves `@` references in change values with the caster's roll data (e.g. `@skills.prg.mod`). */
+function resolveChanges(changes: EffectChange[], data: any): EffectChange[] {
+    return changes.map((change) => {
+        if (!String(change.value).includes('@')) return change;
+        const formula = Roll.replaceFormulaData(String(change.value), data, { missing: '0' });
+        let value: number;
+        try {
+            value = Number(Roll.safeEval(formula));
+        } catch {
+            value = Number.NaN;
+        }
+        return { ...change, value: String(Number.isFinite(value) ? value : 0) };
+    });
+}
+
+/** Description placeholders for effects whose text depends on the caster's talents. */
+function describe(key: string, talents: string[], changes: EffectChange[]): Record<string, unknown> {
+    if (key === 'skate') {
+        return {
+            cost: talents.includes(SKATE_TALENTS.cheaper) ? 1 : 2,
+            path: t(talents.includes(SKATE_TALENTS.anyPath) ? 'SCI.EffectDesc.AnyPath' : 'SCI.EffectDesc.StraightLine'),
+        };
+    }
+    return { value: changes[0]?.value ?? '' };
+}
+
 function effectData(caster: any, inf: Infusion): Record<string, any>[] {
     const talents = isSquire(caster) ? [] : actorTalents(caster).map((tl) => tl.id);
-    return subEffectsFor(inf, talents, getMapping().subEffects).map(({ key, preset, changes }) => ({
-        name: (preset as { name?: string }).name ?? t(`SCI.Effect.${key}`),
-        img: (preset.status && statusIcon(preset.status)) || preset.img || MARKER_ICON,
-        origin: caster.uuid,
-        description: t(`SCI.EffectDesc.${key}`, { value: changes[0]?.value ?? '' }),
-        changes,
-        statuses: preset.status ? [preset.status] : [],
-        flags: { [MODULE_ID]: { [FLAGS.sub]: { infusionId: inf.id, casterUuid: caster.uuid, key } } },
-    }));
+    const rollData = casterRollData(caster);
+    return subEffectsFor(inf, talents, getMapping().subEffects).map(({ key, preset, changes: raw }) => {
+        const changes = resolveChanges(raw, rollData);
+        return {
+            name: (preset as { name?: string }).name ?? t(`SCI.Effect.${key}`),
+            img: (preset.status && statusIcon(preset.status)) || preset.img || MARKER_ICON,
+            origin: caster.uuid,
+            description: t(`SCI.EffectDesc.${key}`, describe(key, talents, changes)),
+            changes,
+            statuses: preset.status ? [preset.status] : [],
+            flags: { [MODULE_ID]: { [FLAGS.sub]: { infusionId: inf.id, casterUuid: caster.uuid, key } } },
+        };
+    });
 }
+
+const isExclusive = (key: string) => !!getMapping().subEffects[key]?.exclusive;
+
+/** Another enabled effect with this key from a different infusion is already on the actor. */
+const otherActive = (actor: any, key: string, infusionId: string) =>
+    (actor?.effects ?? []).some(
+        (e: any) => !e.disabled && subFlag(e)?.key === key && subFlag(e)?.infusionId !== infusionId,
+    );
 
 const sameChanges = (a: any[], b: any[]) =>
     JSON.stringify((a ?? []).map((c) => [c.key, Number(c.mode), String(c.value)])) ===
@@ -77,12 +121,27 @@ async function applyOp(op: SubOp) {
     if (!actor) return;
     const existing = findSubEffects(actor, op.infusionId);
     const wanted = new Map(op.effects.map((e) => [e.flags[MODULE_ID][FLAGS.sub].key as string, e]));
-    const remove = existing.filter((e) => !wanted.has(subFlag(e)!.key)).map((e) => e.id);
-    if (remove.length) await actor.deleteEmbeddedDocuments('ActiveEffect', remove);
+    const removed = existing.filter((e) => !wanted.has(subFlag(e)!.key));
+    if (removed.length)
+        await actor.deleteEmbeddedDocuments(
+            'ActiveEffect',
+            removed.map((e) => e.id),
+        );
+    // A removed exclusive effect (Hardened Defense) lets a waiting copy from another infusion take over.
+    for (const key of new Set(removed.filter((e) => !e.disabled).map((e) => subFlag(e)!.key))) {
+        if (!isExclusive(key) || otherActive(actor, key, op.infusionId)) continue;
+        const waiting = actor.effects.find(
+            (e: any) => e.disabled && subFlag(e)?.key === key && subFlag(e)?.infusionId !== op.infusionId,
+        );
+        if (waiting) await waiting.update({ disabled: false });
+    }
     const create: Record<string, any>[] = [];
     for (const [key, data] of wanted) {
         const effect = existing.find((e) => subFlag(e)!.key === key);
-        if (!effect) create.push(data);
+        if (!effect)
+            create.push(
+                isExclusive(key) && otherActive(actor, key, op.infusionId) ? { ...data, disabled: true } : data,
+            );
         else if (effect.name !== data.name || !sameChanges(effect.changes, data.changes)) {
             await effect.update({ name: data.name, changes: data.changes, description: data.description });
         }
@@ -123,15 +182,13 @@ export async function requestRegrowth(actor: any) {
     if (runner?.active) await asUser(runner.id, 'regrowth', { actorUuid: actor.uuid });
 }
 
-/** Regrowth healing formula: the Progression action's own healing formula, else the configured one; plus Swift Healer. */
 function regrowthRoll(caster: any, inf: { sourceItemUuid: string | null }): { formula: string; data: any } {
     const formulas = getMapping().formulas;
     const item = inf.sourceItemUuid ? fromUuidSync(inf.sourceItemUuid, { strict: false }) : null;
     const own = item?.system?.damage?.type === 'heal' ? item.system.damage.formula : null;
-    let formula = own || formulas.regrowth;
-    const swiftHealer = !isSquire(caster) && actorTalents(caster).some((tl) => tl.id === SWIFT_HEALER);
-    if (swiftHealer) formula = `(${formula}) + (${formulas.swiftHealer})`;
-    return { formula, data: (own && item.getRollData?.()) || caster.getRollData() };
+    const talents = isSquire(caster) ? [] : actorTalents(caster).map((tl) => tl.id);
+    const data = { ...((own && item.getRollData?.()) || {}), ...casterRollData(caster) };
+    return { formula: regrowthFormula(own || formulas.regrowth, talents, HEALING_BONUS_TALENTS, formulas), data };
 }
 
 async function rollRegrowth(actor: any) {

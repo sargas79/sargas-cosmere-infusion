@@ -53,7 +53,7 @@ export function freeEnhanceUpkeep(actor: any): boolean {
         (item: any) =>
             item.type === 'goal' &&
             Number(item.system?.level) >= 3 &&
-            (item.system?.id === SECOND_IDEAL_GOAL || /second ideal/i.test(item.name ?? '')),
+            (String(item.system?.id ?? '').startsWith(SECOND_IDEAL_GOAL) || /second ideal/i.test(item.name ?? '')),
     );
 }
 

@@ -312,15 +312,21 @@
       "restrained": "Restrained",
       "basic-lashing": "Basic Lashing",
       "regrowth": "Regrowth",
-      "hardened-defense": "Hardened Defense"
+      "hardened-defense": "Hardened Defense",
+      "slide": "Slide",
+      "swift-regeneration": "Swift Regeneration"
     },
     "EffectDesc": {
-      "skate": "Can use Skate as a free action.",
-      "frictionless-motion": "Movement +{value} ft.",
-      "restrained": "Restrained while infused.",
-      "basic-lashing": "Fly {value} ft.",
-      "regrowth": "Recovers health each time this character is activated in combat.",
-      "hardened-defense": "Physical defense +{value}."
+      "skate": "Skate: spend {cost} focus to Move {path} across the ground as if it were ice.",
+      "frictionless-motion": "Movement +{value} ft; ignores Slowed.",
+      "restrained": "Restrained while fully lashed to something larger.",
+      "basic-lashing": "Flying rate {value} ft. Falls when the Lashing ends.",
+      "regrowth": "Recovers health at the start of each of this character's turns (rolled when they're activated in combat).",
+      "hardened-defense": "Physical defense +{value}. Only one Tension infusion raises a character's Physical defense at a time.",
+      "StraightLine": "in a straight line",
+      "AnyPath": "along any path",
+      "slide": "Slide: counts as one size smaller when squeezing through spaces, and has an advantage on tests to escape restraints that hold through friction or pressure.",
+      "swift-regeneration": "Injury rolls +{value} while the caster has Investiture."
     },
     "Duration": {
       "Round": "{n} round",
