@@ -99,7 +99,7 @@ describe('computeModifiers', () => {
                 ...base,
                 surge: 'ill',
                 kind: 'area',
-                talents: [t('ill', 'fourth-ideal-lightweaver')],
+                talents: [t('ill', 'physical-illusion')],
                 physicalIllusion: true,
             }).health,
         ).toBe(10);

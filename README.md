@@ -27,7 +27,7 @@ https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/mod
   - Master of the Skies, Smooth Operator, Endless Illusions and Extended Tension: free while you're Invested.
   - Stormlight Reclamation, Distant Surgebinding / Through the Stone, Fine Control, the Physical Illusion, Group Flight, Aerial Squadron, Multiplicative Lightweaving and Multiple Lashings.
 - **Start of turn.** When a combatant activates their fast or slow turn in the tracker, their infusions drain once. If they keep self infusions or upkeep effects up, the player who owns the character first gets a window to **Maintain** or **End** each one. Closing the window maintains everything. The GM gets the window for adversaries and offline players.
-- **Enhance at the end of the turn.** Enhance asks *Maintain / End* when the character's turn ends (another combatant activates, or the round ends). No window when it's free (the *Speak the Second Ideal* goal is completed) or when there's no Investiture left (it ends).
+- **Enhance at the end of the turn.** Enhance lasts until the end of the turn after the one it was used in. From then on, it asks *Maintain / End* when the character's turn ends (another combatant activates, or the round ends). No window when it's free (the *Speak the Second Ideal* goal is completed) or when there's no Investiture left (it ends).
 - **Chat summaries** list each infusion as *Surge on Target* (e.g. **Tension** on **Selaneth**: drained 1, 3 left).
 - **Rules handled:**
   - Self infusions draw from your Investiture and end at 0 (non-Invested); infused pools keep running.
@@ -38,11 +38,11 @@ https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/mod
 - **Infused markers.** Targets get an *Infused (N)* effect, created through the GM when the player doesn't own the target.
 - **Upkeep effects.** Enhance, Tunneling and Gravitational Support ask *Maintain?* each turn. Not maintaining Enhance turns its Enhanced effects off.
 - **Infusion effects.** Infused characters get active effects listed under the infusion:
-  - Abrasion: *Skate*; *Frictionless Motion* (Move +10 ft) with that talent.
+  - Abrasion (self): *Skate* (focus cost and path follow Smooth Operator and Graceful Skating) and *Slide*; *Frictionless Motion* (Move +10 ft) with that talent.
   - Adhesion: *Restrained* with Living Adhesion.
   - Gravitation: *Basic Lashing*, Fly 25 ft (40 ft with Flying Ace).
-  - Progression: *Regrowth*. When the character is activated in combat, the healing is rolled and applied: the Progression action's healing formula, or `@scalar.power.prg.die + @skills.prg.mod`, plus `@skills.med.rank` with Swift Healer.
-  - Tension: *Hardened Defense*, Physical defense +2 (+4 with Clothsmith).
+  - Progression: *Regrowth*. When the character is activated in combat, the healing is rolled and applied: the caster's Progression surge die (d4 at 1 rank, d6 at 2…) + Progression modifier, plus Medicine ranks with Swift Healer and Lore ranks with Applied Medicine. With Swift Regeneration, the target also adds the caster's Progression modifier to injury rolls.
+  - Tension: *Hardened Defense*, Physical defense +2 (+4 with Clothsmith). Only one counts per character; extra copies stay disabled until the active one ends.
 
   Effects and formulas can be changed in *Surge and talent mapping* (`subEffects`, `formulas`).
 - **Spheres (optional).** Breathe Stormlight turns infused marks and broams dun (1 Investiture each), and the GM's *Highstorm* re-infuses them.

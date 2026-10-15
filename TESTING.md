@@ -34,10 +34,10 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 
 ## Infusion effects
 - [ ] Self Gravitation: *Basic Lashing* under the infusion in Active Infusions, Fly 25 ft (40 with Flying Ace).
-- [ ] Tension on a character's clothing (target the token): *Hardened Defense*, Physical defense +2 (+4 with Clothsmith).
-- [ ] Abrasion self: *Skate*, and *Frictionless Motion* (+10 ft Move) with that talent. Adhesion with Living Adhesion: target is Restrained.
+- [ ] Tension on a character's clothing (target the token): *Hardened Defense*, Physical defense +2 (+4 with Clothsmith). A second Tension infusion on the same character adds a disabled copy, which turns on when the first ends.
+- [ ] Abrasion self: *Skate* (2 focus, straight line; 1 focus with Smooth Operator, any path with Graceful Skating) and *Slide*, and *Frictionless Motion* (+10 ft Move) with that talent. Adhesion with Living Adhesion: target is Restrained.
 - [ ] The effect toggle turns the effect off without ending the infusion. Ending the infusion removes its effects, also on tokens the player doesn't own (GM relay).
-- [ ] Progression on a character: activating that character rolls Regrowth and heals them.
+- [ ] Progression on a character: activating that character rolls Regrowth (surge die + caster's Progression modifier, + Medicine ranks with Swift Healer, + Lore ranks with Applied Medicine) and heals them. With Swift Regeneration they get an injury roll bonus.
 
 ## Start of turn (combat)
 - [ ] The player activates their slow turn: the window opens on the **player's** client, and only once.
@@ -52,7 +52,7 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 - [ ] Unconscious caster: infusions still drain.
 - [ ] Boss with fast + slow turns: drains once per round by default, twice with "both turns".
 - [ ] Empowered (status): Investiture refills to max before the drain.
-- [ ] Enhance asks nothing at the start of the turn. Activating another combatant (or the next round) opens *End of turn* with Maintain / End; chat says **Enhance**: Maintained (or Ended).
+- [ ] Enhance asks nothing at the start of the turn, nor at the end of the turn it was used in. At the end of the following turn (another combatant activates, or the next round) *End of turn* opens with Maintain / End; chat says **Enhance**: Maintained (or Ended).
 - [ ] Ending Enhance turns its Enhanced effects off.
 - [ ] With *Speak the Second Ideal* completed (goal level 3), no window and no Investiture spent. With 0 Investiture, Enhance ends without a window.
 - [ ] After a page reload, the first activation doesn't end the previous turn (turns are tracked in memory); the next ones do.
