@@ -44,6 +44,8 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 - [ ] The GM activates the player's combatant: the window still opens on the player's client.
 - [ ] The window lists only self infusions and upkeep effects, each with Maintain / End toggles (only one can be selected). Infusions on others drain without a window.
 - [ ] No self infusion or upkeep: no window, the drain still happens.
+- [ ] 0 Investiture (not Empowered) with a self infusion or upkeep: no window, they end ("Ended. The caster is no longer Invested.").
+- [ ] An Enhance entry created with v0.1.0 also asks at the end of the turn, not the start.
 - [ ] Closing the window maintains everything and still drains.
 - [ ] Chat: "Infusions upkeep" with lines like **Tension** on **Selaneth**: drained 1, 3 left, and "Ended. Out of Investiture." nested under the infusion.
 - [ ] Pool 1 → the infusion ends, its marker disappears, and the chat says "out of Investiture".

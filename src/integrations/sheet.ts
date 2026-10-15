@@ -68,7 +68,7 @@ function targetCell(caster: any, inf: Infusion): string {
     return inf.targets
         .map((tg) => {
             const actor = targetActor(tg.uuid);
-            return entity(tg.name || actor?.name || '', actor ? (tg.img ?? actor.img) : null);
+            return entity(tg.name || actor?.name || '', actor ? (actor.img ?? tg.img) : null);
         })
         .join('');
 }

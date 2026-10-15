@@ -19,7 +19,14 @@ import { getSetting } from '@/settings';
 export const UPDATE_OPTION = 'sciInternal';
 
 export function getInfusions(actor: any): Infusion[] {
-    return parseInfusions(actor?.getFlag?.(MODULE_ID, FLAGS.infusions));
+    return parseInfusions(actor?.getFlag?.(MODULE_ID, FLAGS.infusions)).map(legacyTiming);
+}
+
+/** Enhance entries saved before end-of-turn upkeep existed have no timing: treat them as end-of-turn. */
+function legacyTiming(inf: Infusion): Infusion {
+    if (inf.kind !== 'upkeep' || inf.timing === 'end' || !inf.sourceItemUuid) return inf;
+    const item = fromUuidSync(inf.sourceItemUuid, { strict: false });
+    return item?.system?.id === STORMLIGHT_ACTIONS.enhance ? { ...inf, timing: 'end' } : inf;
 }
 
 export interface CommitOptions {

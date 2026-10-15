@@ -44,7 +44,10 @@ export async function runTurnStart(actor: any, { prompt = getSetting('promptOnTu
         // Only your own upkeep is decided now; infusions on others just drain.
         const asked = getInfusions(actor).filter(promptsAtStart);
         let decisions: TurnDecisions = {};
-        if (prompt && asked.length) decisions = await TurnPrompt.ask(actor, asked, casterState(actor), 'start');
+        // Without Investiture (and no Empowered refill) nothing can be maintained: it all ends, no window.
+        const state = casterState(actor);
+        const canPay = state.inv >= 1 || !!state.empowered;
+        if (prompt && asked.length && canPay) decisions = await TurnPrompt.ask(actor, asked, state, 'start');
 
         // Re-read: Investiture or infusions may have changed while the prompt was open.
         const round = game.combat?.started ? game.combat.round : null;
