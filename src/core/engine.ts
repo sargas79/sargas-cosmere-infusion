@@ -186,7 +186,8 @@ export function resolveTurnStart(
     }
 
     for (const inf of [...w.alive.values()]) {
-        if (inf.drain.cadence === 'round') drainOnce(w, inf);
+        // End-of-turn upkeeps (Enhance) are paid in resolveTurnEnd.
+        if (inf.drain.cadence === 'round' && inf.timing !== 'end') drainOnce(w, inf);
     }
 
     endSelfIfNonInvested(w);
@@ -203,6 +204,49 @@ export function resolveTurnStart(
     }
 
     return w.result();
+}
+
+export interface TurnEndOptions {
+    /** Upkeep is free this turn (Speak the Second Ideal makes Enhance free). */
+    free?: boolean;
+}
+
+/**
+ * Resolves the end of the caster's turn: end-of-turn upkeeps (Enhance) are ended as chosen, then paid.
+ * A caster without enough Investiture can't pay and the upkeep ends.
+ */
+export function resolveTurnEnd(
+    caster: CasterState,
+    infusions: Infusion[],
+    decisions: Pick<TurnDecisions, 'skipUpkeep'> = {},
+    options: TurnEndOptions = {},
+): EngineResult {
+    const w = new Working(caster, infusions);
+    for (const id of decisions.skipUpkeep ?? []) {
+        const inf = w.alive.get(id);
+        if (inf?.timing === 'end') w.end(inf, 'upkeep-declined');
+    }
+    for (const inf of [...w.alive.values()]) {
+        if (inf.timing !== 'end') continue;
+        if (options.free) w.log.push({ type: 'free', id: inf.id, label: nameOf(inf) });
+        else drainOnce(w, inf);
+    }
+    endSelfIfNonInvested(w);
+    return w.result();
+}
+
+/**
+ * How many more drains (rounds, 10-minute blocks or days, by cadence) the infusion lasts without new
+ * Investiture. Pools count their own Investiture; self and upkeep infusions count the caster's.
+ * Null when it doesn't run out on its own (free while Invested, or no drain).
+ */
+export function durationLeft(inf: Infusion, casterInv: number): number | null {
+    const perDrain = inf.drain.amount * inf.drain.multiplier;
+    if (perDrain <= 0 || inf.freeWhileInvested) return null;
+    const available = drawsFromCaster(inf) ? Math.max(0, casterInv) : inf.pool;
+    const drains = Math.ceil(available / perDrain);
+    if (drains <= 0) return 0;
+    return drains * inf.drain.everyNRounds - inf.drain.counter;
 }
 
 export const CADENCE_SECONDS = { '10min': 600, day: 86_400 } as const;

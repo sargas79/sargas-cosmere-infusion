@@ -7,7 +7,8 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 - [ ] Settings → Surge and talent mapping → *Check against compendium* lists the 10 surges and finds every mapped talent.
 
 ## Creating infusions
-- [ ] Use Gravitation with 3 Investiture and a target. The New infusion window opens with pool 3, already paid 3, the target listed, and no extra charge.
+- [ ] Use Gravitation with 3 Investiture and a target. The New infusion window opens with pool 3, the target listed, and no extra charge. It has no Surge, Name, Already paid, Notes or Drain fields; Edit on the infusion shows them all.
+- [ ] *New infusion* (+) on the sheet, without using an action, does show the Surge field.
 - [ ] Raise the pool to 4: the window says 1 more will be charged, and creating it reduces Investiture by 1.
 - [ ] A Gravitation self Lashing has no pool. Creating it doesn't charge anything.
 - [ ] Use Division / Transformation / Transportation: no window opens.
@@ -20,22 +21,41 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 ## Talents
 - [ ] Extended Adhesion: the dialog shows "drain every N rounds" with N = Adhesion ranks.
 - [ ] Master of the Skies: a self Lashing is "free while Invested". A Lashing on another character is not.
-- [ ] Stormlight Reclamation: the Reclaim button and the Reclaim checkbox appear only for that surge's infusions.
+- [ ] Stormlight Reclamation: *Reclaim* appears in the Sustained Infusions menu only for that surge's infusions, and returns the pool (capped at max).
 - [ ] A squire ignores talent modifiers.
+
+## Sheet (Effects tab)
+- [ ] *Sustained Infusions* sits below Injuries, collapses from its header, and stays collapsed after the sheet re-renders.
+- [ ] Each row shows the art, the target (portrait with a yellow border for characters) and "N rounds".
+- [ ] **+** takes 1 Investiture and adds 1 round, with no window. Hidden for self and upkeep infusions.
+- [ ] View details expands the row. The menu has Edit and Remove (plus Reclaim / Damage / GM tools when they apply).
+- [ ] A target's sheet shows the infusion under *Active Infusions* with the caster as Source; removing it there removes it from the caster's Sustained list too, and the other way round.
+- [ ] A player who doesn't own the caster sees no menu on the target's Active Infusions row.
+
+## Infusion effects
+- [ ] Self Gravitation: *Basic Lashing* under the infusion in Active Infusions, Fly 25 ft (40 with Flying Ace).
+- [ ] Tension on a character's clothing (target the token): *Hardened Defense*, Physical defense +2 (+4 with Clothsmith).
+- [ ] Abrasion self: *Skate*, and *Frictionless Motion* (+10 ft Move) with that talent. Adhesion with Living Adhesion: target is Restrained.
+- [ ] The effect toggle turns the effect off without ending the infusion. Ending the infusion removes its effects, also on tokens the player doesn't own (GM relay).
+- [ ] Progression on a character: activating that character rolls Regrowth and heals them.
 
 ## Start of turn (combat)
 - [ ] The player activates their slow turn: the window opens on the **player's** client, and only once.
 - [ ] The GM activates the player's combatant: the window still opens on the player's client.
-- [ ] Add 2 to an infusion with pool 1: after the drain the pool is 2 and Investiture is 2 lower.
-- [ ] Reclaim returns the pool left after the drain, capped at max.
-- [ ] Closing the window still drains.
+- [ ] The window lists only self infusions and upkeep effects, each with Maintain / End toggles (only one can be selected). Infusions on others drain without a window.
+- [ ] No self infusion or upkeep: no window, the drain still happens.
+- [ ] Closing the window maintains everything and still drains.
+- [ ] Chat: "Infusions upkeep" with lines like **Tension** on **Selaneth**: drained 1, 3 left, and "Ended. Out of Investiture." nested under the infusion.
 - [ ] Pool 1 → the infusion ends, its marker disappears, and the chat says "out of Investiture".
 - [ ] Self infusion with Investiture 1 → it drains to 0 and ends (non-Invested).
 - [ ] Spending Investiture down to 0 elsewhere ends self infusions immediately.
 - [ ] Unconscious caster: infusions still drain.
 - [ ] Boss with fast + slow turns: drains once per round by default, twice with "both turns".
 - [ ] Empowered (status): Investiture refills to max before the drain.
-- [ ] Upkeep: unticking *Maintain* ends Enhance and turns its Enhanced effects off.
+- [ ] Enhance asks nothing at the start of the turn. Activating another combatant (or the next round) opens *End of turn* with Maintain / End; chat says **Enhance**: Maintained (or Ended).
+- [ ] Ending Enhance turns its Enhanced effects off.
+- [ ] With *Speak the Second Ideal* completed (goal level 3), no window and no Investiture spent. With 0 Investiture, Enhance ends without a window.
+- [ ] After a page reload, the first activation doesn't end the previous turn (turns are tracked in memory); the next ones do.
 - [ ] Drain trigger "round start": every caster's window opens when the round advances, whoever advances it.
 
 ## Markers and ownership

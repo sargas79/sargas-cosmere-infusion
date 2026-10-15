@@ -2,8 +2,8 @@
  * Turns the caster's talents into infusion settings. Pure: callers pass the talents and surge ranks
  * read from the actor.
  */
-import type { InfusionKind, SurgeKey } from '@/data/infusion';
-import type { TalentEffect } from '@/data/presets';
+import type { Infusion, InfusionKind, SurgeKey } from '@/data/infusion';
+import type { EffectChange, SubEffectPreset, TalentEffect } from '@/data/presets';
 
 export interface OwnedTalent {
     /** Talent `system.power` (surge key) or null. */
@@ -129,4 +129,27 @@ export function computeModifiers(ctx: ModifierContext): ModifierResult {
         if (used && !out.applied.includes(talent.name)) out.applied.push(talent.name);
     }
     return out;
+}
+
+export interface ResolvedSubEffect {
+    key: string;
+    preset: SubEffectPreset;
+    changes: EffectChange[];
+    /** The upgrade talent applied (Flying Ace, Clothsmith). */
+    upgraded: boolean;
+}
+
+/** Sub-effects an infusion gives the characters it infuses. Squires pass no talents. */
+export function subEffectsFor(
+    inf: Pick<Infusion, 'surge' | 'kind'>,
+    talentIds: readonly string[],
+    presets: Record<string, SubEffectPreset>,
+): ResolvedSubEffect[] {
+    const has = (id: string) => talentIds.includes(id);
+    return Object.entries(presets)
+        .filter(([, p]) => p.surge === inf.surge && p.kinds.includes(inf.kind) && (!p.requires || has(p.requires)))
+        .map(([key, preset]) => {
+            const upgraded = !!preset.upgrade && has(preset.upgrade.talent);
+            return { key, preset, changes: upgraded ? preset.upgrade!.changes : (preset.changes ?? []), upgraded };
+        });
 }

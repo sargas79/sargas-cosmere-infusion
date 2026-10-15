@@ -24,7 +24,7 @@ export async function offerInfusion(item: any, spent: number) {
         // One upkeep entry per source item: using Enhance again doesn't stack.
         const existing = getInfusions(actor).find((i) => i.kind === 'upkeep' && i.sourceItemUuid === item.uuid);
         if (existing) return;
-        const inf = normalizeInfusion({ surge: 'upkeep', kind: 'upkeep', label: item.name, sourceItemUuid: item.uuid });
+        const inf = normalizeInfusion({ surge: 'upkeep', kind: 'upkeep', label: item.name, sourceItemUuid: item.uuid, timing: detected.timing });
         await createInfusion(actor, inf, 0);
         ui.notifications.info(t('SCI.Notify.UpkeepTracked', { name: item.name }));
         return;

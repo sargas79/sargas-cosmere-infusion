@@ -1,6 +1,6 @@
 /** Works out whether an item (power, surge action, talent action) creates an infusion. */
 import { FLAGS, MODULE_ID } from '@/constants';
-import { SURGE_KEYS, type Cadence, type InfusionKind, type InfusionSurge, type SurgeKey } from '@/data/infusion';
+import { SURGE_KEYS, type Cadence, type InfusionKind, type InfusionSurge, type SurgeKey, type UpkeepTiming } from '@/data/infusion';
 import { SURGE_PRESETS } from '@/data/presets';
 import { getMapping } from '@/core/mapping';
 
@@ -25,6 +25,7 @@ export interface DetectedInfusion {
     reclaimable?: boolean;
     /** Upkeep effects are created directly, without the dialog. */
     upkeep: boolean;
+    timing?: UpkeepTiming;
 }
 
 export const itemConfig = (item: any): ItemInfusionConfig =>
@@ -62,7 +63,7 @@ export function detectInfusion(item: any, { ignoreConfig = false } = {}): Detect
 
     const preset = getMapping().actionPresets[item.system?.id];
     if (preset) {
-        return { surge: preset.surge, kind: preset.kind, hint: preset.hint, upkeep: preset.kind === 'upkeep' };
+        return { surge: preset.surge, kind: preset.kind, hint: preset.hint, upkeep: preset.kind === 'upkeep', timing: preset.timing };
     }
 
     const surge = surgeOf(item);

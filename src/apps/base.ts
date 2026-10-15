@@ -52,10 +52,14 @@ export abstract class HtmlApp extends ApplicationV2 {
         this.element.addEventListener('submit', (event: Event) => event.preventDefault());
     }
 
-    /** Reads every named input in the app into a flat object (checkboxes as booleans). */
+    /** Reads every named input in the app into a flat object (checkboxes as booleans, radios as the checked value). */
     protected readForm(): Record<string, string | boolean> {
         const data: Record<string, string | boolean> = {};
         for (const el of this.element.querySelectorAll<HTMLInputElement>('[name]')) {
+            if (el.type === 'radio') {
+                if (el.checked) data[el.name] = el.value;
+                continue;
+            }
             data[el.name] = el.type === 'checkbox' ? el.checked : el.value;
         }
         return data;

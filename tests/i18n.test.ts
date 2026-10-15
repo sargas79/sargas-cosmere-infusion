@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CADENCES, INFUSION_KINDS, LIGHTS, SURGE_KEYS, SURGE_SCALING } from '@/data/infusion';
 import type { EndReason } from '@/core/engine';
+import { DEFAULT_SUB_EFFECTS } from '@/data/presets';
 
 const lang = JSON.parse(readFileSync(join(__dirname, '..', 'lang', 'en.json'), 'utf8'));
 
@@ -43,6 +44,7 @@ describe('lang/en.json', () => {
             ...LIGHTS.map((k) => `SCI.Light.${k}`),
             ...reasons.map((k) => `SCI.EndReason.${k}`),
             ...SURGE_SCALING.map((s) => `SCI.Size.${s.size}`),
+            ...Object.keys(DEFAULT_SUB_EFFECTS).flatMap((k) => [`SCI.Effect.${k}`, `SCI.EffectDesc.${k}`]),
             ...['combat', 'conversation', 'endeavor', 'free'].flatMap((m) => [`SCI.SceneMode.${m}`, `SCI.SceneMode.${m}Hint`]),
             ...[
                 'triggerMode',
@@ -51,6 +53,7 @@ describe('lang/en.json', () => {
                 'autoPromptOnUse',
                 'whisperChat',
                 'tokenMarkers',
+                'subEffects',
                 'worldTimeDrain',
                 'sphereTracking',
                 'breatheRefill',

@@ -16,13 +16,19 @@ https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/mod
 
 ## Features
 
-- **Infusions on the sheet.** An *Infusions* section on the Actions tab of characters and adversaries shows each infusion, its Investiture, targets, and buttons to add, reclaim, edit or end it. The token HUD sun button opens the same list in a window.
-- **Created when you use a surge.** Using Abrasion, Adhesion, Cohesion, Gravitation, Illumination, Progression or Tension opens a prefilled *New infusion* window. It uses the Investiture you spent and your targeted tokens. Talents that trigger a surge (Binding Strike…) work too. Division, Transformation and Transportation are instant and don't prompt.
+- **Infusions on the sheet.** Two collapsible tables on the Effects tab, below Injuries:
+  - *Sustained Infusions*: the infusions you keep up, with target, duration (rounds left), **+** (1 Investiture, 1 more round), details and a menu (edit, reclaim, remove; drain and double drain for the GM).
+  - *Active Infusions*: the infusions on this character and who they come from, with their effects listed under them. Both tables show the same infusion, so a change or removal shows in both.
+
+  The token HUD sun button opens the infusion list in a window.
+- **Created when you use a surge.** Using Abrasion, Adhesion, Cohesion, Gravitation, Illumination, Progression or Tension opens a short *New infusion* window: target type, targets and Investiture. It uses the Investiture you spent, your targeted tokens and your talents; everything else can be changed later with Edit. Talents that trigger a surge (Binding Strike…) work too. Division, Transformation and Transportation are instant and don't prompt.
 - **Talents applied automatically.** Your talents set the infusion's rules, and you can override each one:
   - Extended Adhesion / Regrowth / Tension and Lingering Lightweavings: drain every N rounds.
   - Master of the Skies, Smooth Operator, Endless Illusions and Extended Tension: free while you're Invested.
   - Stormlight Reclamation, Distant Surgebinding / Through the Stone, Fine Control, the Physical Illusion, Group Flight, Aerial Squadron, Multiplicative Lightweaving and Multiple Lashings.
-- **Start of turn.** When a combatant activates their fast or slow turn in the tracker, the player who owns the character gets a window: add Investiture, reclaim, end, or keep paying upkeep effects. Then infusions drain once. Closing the window continues. The GM gets the window for adversaries and offline players.
+- **Start of turn.** When a combatant activates their fast or slow turn in the tracker, their infusions drain once. If they keep self infusions or upkeep effects up, the player who owns the character first gets a window to **Maintain** or **End** each one. Closing the window maintains everything. The GM gets the window for adversaries and offline players.
+- **Enhance at the end of the turn.** Enhance asks *Maintain / End* when the character's turn ends (another combatant activates, or the round ends). No window when it's free (the *Speak the Second Ideal* goal is completed) or when there's no Investiture left (it ends).
+- **Chat summaries** list each infusion as *Surge on Target* (e.g. **Tension** on **Selaneth**: drained 1, 3 left).
 - **Rules handled:**
   - Self infusions draw from your Investiture and end at 0 (non-Invested); infused pools keep running.
   - Empowered refills Investiture before the drain.
@@ -31,6 +37,14 @@ https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/mod
 - **GM tracker** (sun button in the token controls): every active infusion in the world, *End all* at the end of a scene, drain by N (larkin Drain Light, optionally giving it to the targeted token), and double drain (an Opportunity that burns Stormlight too quickly).
 - **Infused markers.** Targets get an *Infused (N)* effect, created through the GM when the player doesn't own the target.
 - **Upkeep effects.** Enhance, Tunneling and Gravitational Support ask *Maintain?* each turn. Not maintaining Enhance turns its Enhanced effects off.
+- **Infusion effects.** Infused characters get active effects listed under the infusion:
+  - Abrasion: *Skate*; *Frictionless Motion* (Move +10 ft) with that talent.
+  - Adhesion: *Restrained* with Living Adhesion.
+  - Gravitation: *Basic Lashing*, Fly 25 ft (40 ft with Flying Ace).
+  - Progression: *Regrowth*. When the character is activated in combat, the healing is rolled and applied: the Progression action's healing formula, or `@scalar.power.prg.die + @skills.prg.mod`, plus `@skills.med.rank` with Swift Healer.
+  - Tension: *Hardened Defense*, Physical defense +2 (+4 with Clothsmith).
+
+  Effects and formulas can be changed in *Surge and talent mapping* (`subEffects`, `formulas`).
 - **Spheres (optional).** Breathe Stormlight turns infused marks and broams dun (1 Investiture each), and the GM's *Highstorm* re-infuses them.
 - **Other:** light type per infusion (Stormlight, Voidlight…), infusions paid from a gem, squires (no talent modifiers), and per-item infusion settings (sun button in the item sheet header).
 
@@ -44,6 +58,7 @@ https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/mod
 | Offer infusion on surge use (per user) | on |
 | Whisper summaries | on |
 | Infused markers | on |
+| Infusion effects | on |
 | Drain with world time | on |
 | Track spheres / Breathe Stormlight refills | off / off |
 | End Enhanced with upkeep | on |
@@ -59,6 +74,7 @@ await api.addInvestiture(actor, id, 2);
 await api.endInfusion(actor, id, { refund: true });
 const drained = await api.drainInfusion(actor, id, 2);
 await api.runTurnStart(actor);
+await api.runTurnEnd(actor);    // end-of-turn upkeep (Enhance)
 api.openTracker();
 ```
 

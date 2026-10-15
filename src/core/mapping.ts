@@ -6,9 +6,12 @@ import { HANDBOOK_ID } from '@/constants';
 import { SURGE_KEYS, type SurgeKey } from '@/data/infusion';
 import {
     DEFAULT_ACTION_PRESETS,
+    DEFAULT_FORMULAS,
+    DEFAULT_SUB_EFFECTS,
     DEFAULT_SURGE_ACTION_IDS,
     DEFAULT_TALENT_EFFECTS,
     type ActionInfusionPreset,
+    type SubEffectPreset,
     type TalentEffect,
 } from '@/data/presets';
 import { getSetting } from '@/settings';
@@ -18,6 +21,8 @@ export interface Mapping {
     surgeActions: Record<string, SurgeKey>;
     actionPresets: Record<string, ActionInfusionPreset>;
     talentEffects: Record<string, TalentEffect[]>;
+    subEffects: Record<string, SubEffectPreset>;
+    formulas: typeof DEFAULT_FORMULAS;
 }
 
 const isSurge = (v: unknown): v is SurgeKey => SURGE_KEYS.includes(v as SurgeKey);
@@ -39,7 +44,16 @@ export function getMapping(): Mapping {
         if (effects === null) delete talentEffects[id];
         else if (Array.isArray(effects)) talentEffects[id] = effects as TalentEffect[];
     }
-    return { surgeActions, actionPresets, talentEffects };
+    const subEffects: Record<string, SubEffectPreset> = { ...DEFAULT_SUB_EFFECTS };
+    for (const [id, preset] of Object.entries(overrides.subEffects ?? {})) {
+        if (preset === null) delete subEffects[id];
+        else if (preset && typeof preset === 'object') subEffects[id] = preset as SubEffectPreset;
+    }
+    const formulas = { ...DEFAULT_FORMULAS };
+    for (const [id, formula] of Object.entries(overrides.formulas ?? {})) {
+        if (id in formulas && typeof formula === 'string' && formula.trim()) formulas[id as keyof typeof formulas] = formula;
+    }
+    return { surgeActions, actionPresets, talentEffects, subEffects, formulas };
 }
 
 export interface VerifyReport {
