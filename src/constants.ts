@@ -15,6 +15,8 @@ export const FLAGS = {
     itemConfig: 'config',
     /** ActiveEffect: marks an effect as an infusion marker on a target. */
     marker: 'marker',
+    /** ActiveEffect: marks an effect as a sub-effect of an infusion (Basic Lashing, Hardened Defense...). */
+    sub: 'sub',
 } as const;
 
 /** Hooks fired by this module. */

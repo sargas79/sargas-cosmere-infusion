@@ -9,6 +9,7 @@ import { casterState } from '@/core/actor-data';
 import type { EngineResult, LogEntry } from '@/core/engine';
 import { postSummary } from '@/core/chat';
 import { syncMarkers } from '@/core/markers';
+import { syncSubEffects } from '@/core/sub-effects';
 import { asGM, registerHandler } from '@/core/relay';
 import { getSetting } from '@/settings';
 
@@ -48,8 +49,9 @@ export async function commit(actor: any, result: Pick<EngineResult, 'inv' | 'inf
     await actor.update(update, { [UPDATE_OPTION]: true });
 
     await syncMarkers(actor, before, result.infusions);
+    await syncSubEffects(actor, before, result.infusions);
     await endUpkeepSideEffects(actor, result.ended ?? []);
-    if (options.chat) await postSummary(actor, options.chat, result.log, result.inv);
+    if (options.chat) await postSummary(actor, options.chat, result.log, [...before, ...result.infusions], result.inv);
     Hooks.callAll(MODULE_HOOKS.changed, actor, result.infusions);
 }
 

@@ -30,6 +30,8 @@ export const LIGHTS = ['stormlight', 'voidlight', 'lifelight', 'towerlight', 'wa
 export type Light = (typeof LIGHTS)[number];
 
 export type InvestitureSource = 'caster' | 'gem';
+/** When an upkeep is paid: at the start of the caster's turn, or at its end (Enhance). */
+export type UpkeepTiming = 'start' | 'end';
 export type RangeBasis = 'reach' | 'bond' | 'custom';
 
 export interface InfusionTarget {
@@ -70,6 +72,7 @@ export interface Infusion {
     /** Investiture held by the infusion. Unused for `self` and `upkeep`. */
     pool: number;
     drain: DrainSettings;
+    timing: UpkeepTiming;
     light: Light;
     source: InvestitureSource;
     /** No drain while the caster has at least 1 Investiture (Master of the Skies, Endless Illusions...). */
@@ -156,6 +159,7 @@ export function normalizeInfusion(data: InfusionInit): Infusion {
                 data.drain?.multiplierUntilRound == null ? null : clampInt(data.drain.multiplierUntilRound, 0, 0),
             elapsed: Math.max(0, Number(data.drain?.elapsed) || 0),
         },
+        timing: data.timing === 'end' ? 'end' : 'start',
         light: oneOf(data.light, LIGHTS, 'stormlight'),
         source: data.source === 'gem' ? 'gem' : 'caster',
         freeWhileInvested: !!data.freeWhileInvested,

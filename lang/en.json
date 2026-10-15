@@ -62,13 +62,13 @@
       "freeHint": "Outside scenes one round is about 10 minutes: advancing world time drains infusions automatically."
     },
     "EndReason": {
-      "manual": "ended",
-      "pool-empty": "out of Investiture",
-      "non-invested": "caster is no longer Invested",
-      "reclaimed": "reclaimed",
-      "upkeep-declined": "not maintained",
-      "health": "reduced to 0 health",
-      "external": "drained"
+      "manual": "Ended",
+      "pool-empty": "Out of Investiture",
+      "non-invested": "The caster is no longer Invested",
+      "reclaimed": "Reclaimed",
+      "upkeep-declined": "Not maintained",
+      "health": "Reduced to 0 health",
+      "external": "Drained"
     },
     "Field": {
       "Surge": "Surge",
@@ -76,7 +76,6 @@
       "Kind": "Target type",
       "Targets": "Targets",
       "Pool": "Investiture infused",
-      "AlreadyPaid": "Already paid",
       "Source": "Paid from",
       "Cadence": "Drains",
       "EveryNRounds": "Drain every N rounds",
@@ -123,18 +122,15 @@
     "Prompt": {
       "Title": "Start of turn",
       "TitleFor": "Start of turn: {name}",
-      "Intro": "Investiture: {inv}/{max}. Choose what to do before your infusions drain.",
+      "Intro": "Investiture: {inv}/{max}. Maintain or end each effect.",
       "Empowered": "Empowered: Investiture refills to maximum before the drain.",
       "Infusion": "Infusion",
-      "Add": "Add",
-      "Pay": "Maintain",
-      "Reclaim": "Reclaim",
       "End": "End",
-      "PoolValue": "{pool} infused",
-      "EveryN": "every {n} rounds ({counter} counted)",
       "Free": "free while Invested",
-      "Order": "Investiture is added before the drain; reclaimed infusions return what's left after the drain. Closing this window continues.",
-      "Continue": "Continue"
+      "Continue": "Continue",
+      "EndTitleFor": "End of turn: {name}",
+      "Actions": "Actions",
+      "Maintain": "Maintain"
     },
     "List": {
       "Empty": "No active infusions.",
@@ -160,7 +156,13 @@
       "Squire": "Squire (base surges only, no talent modifiers)"
     },
     "Section": {
-      "Title": "Infusions"
+      "Sustained": "Sustained Infusions",
+      "Active": "Active Infusions",
+      "Target": "Target",
+      "Duration": "Duration",
+      "Source": "Source",
+      "Talents": "Talents",
+      "AddOne": "Add Investiture (+1 round)"
     },
     "Tracker": {
       "Title": "Infusion Tracker",
@@ -187,7 +189,7 @@
     },
     "Mapping": {
       "Title": "Surge and talent mapping",
-      "Intro": "Overrides for surge action ids, talent effects and action presets, as JSON. Keys: surgeActions, actionPresets, talentEffects. Set a key to null to remove a default.",
+      "Intro": "Overrides for surge action ids, talent effects and action presets, as JSON. Keys: surgeActions, actionPresets, talentEffects, subEffects, formulas. Set a key to null to remove a default.",
       "Overrides": "Overrides (JSON)",
       "Effective": "Effective mapping",
       "Verify": "Check against compendium",
@@ -203,25 +205,30 @@
       "Description": "Infused by {caster} ({surge})."
     },
     "Chat": {
-      "TurnStart": "Start of turn: infusions",
+      "TurnStart": "Infusions upkeep",
       "TimePassed": "Time passes: infusions",
       "NonInvested": "No Investiture left",
       "Changed": "Infusion changed",
       "DrainedExternal": "Infusion drained",
       "SceneEnd": "End of scene",
       "Highstorm": "A highstorm passes: spheres are infused again.",
-      "CreateInfusion": "Create infusion"
+      "CreateInfusion": "Create infusion",
+      "Regrowth": "Regrowth: {name} recovers health ({caster})"
     },
     "Log": {
       "Refilled": "Empowered: recovered {amount} Investiture.",
-      "Added": "<strong>{label}</strong>: added {amount}.",
-      "Drained": "<strong>{label}</strong>: drained {amount}, {remaining} left.",
-      "DrainedCaster": "<strong>{label}</strong>: {amount} from the caster.",
-      "Free": "<strong>{label}</strong>: no drain (free while Invested).",
-      "Waiting": "<strong>{label}</strong>: drains in {rounds} round(s).",
-      "Ended": "<strong>{label}</strong> ended: {reason}.",
-      "Reclaimed": "<strong>{label}</strong>: reclaimed {amount}.",
-      "MultiplierReset": "<strong>{label}</strong>: drain back to normal.",
+      "On": "{surge} on {target}",
+      "Added": "added {amount}",
+      "Drained": "drained {amount}, {remaining} left",
+      "DrainedCaster": "{amount} from the caster",
+      "Free": "no drain (free while Invested)",
+      "Waiting": "drains in {rounds} round(s)",
+      "Reclaimed": "reclaimed {amount}",
+      "MultiplierReset": "drain back to normal",
+      "Maintained": "Maintained",
+      "UpkeepEnded": "Ended",
+      "EndedPlain": "Ended.",
+      "EndedReason": "Ended. {reason}.",
       "InvLeft": "Investiture: {inv}"
     },
     "Notify": {
@@ -232,7 +239,8 @@
       "Transferred": "{name} gained {amount} Investiture.",
       "NotEnoughSpheres": "{name} recovered only {recovered} of {missing} Investiture: not enough infused marks or broams.",
       "Highstorm": "Highstorm: {count} spheres infused.",
-      "NoGMForCommit": "No GM is connected: this change can't be applied to an actor you don't own."
+      "NoGMForCommit": "No GM is connected: this change can't be applied to an actor you don't own.",
+      "RegrowthFailed": "Regrowth: the healing formula \"{formula}\" couldn't be rolled. Check it in Surge and talent mapping."
     },
     "Settings": {
       "triggerMode": {
@@ -264,6 +272,10 @@
         "Name": "Infused markers",
         "Hint": "Show an \"Infused\" effect on infusion targets."
       },
+      "subEffects": {
+        "Name": "Infusion effects",
+        "Hint": "Infused characters get the infusion's effects (Skate, Basic Lashing, Hardened Defense, Regrowth...) as active effects."
+      },
       "worldTimeDrain": {
         "Name": "Drain with world time",
         "Hint": "Advancing world time drains 10-minute and daily infusions (and round infusions in Free time)."
@@ -293,6 +305,35 @@
         "Label": "Configure",
         "Hint": "Check or override the identifiers used to detect surges and talents."
       }
+    },
+    "Effect": {
+      "skate": "Skate",
+      "frictionless-motion": "Frictionless Motion",
+      "restrained": "Restrained",
+      "basic-lashing": "Basic Lashing",
+      "regrowth": "Regrowth",
+      "hardened-defense": "Hardened Defense",
+      "slide": "Slide",
+      "swift-regeneration": "Swift Regeneration"
+    },
+    "EffectDesc": {
+      "skate": "Skate: spend {cost} focus to Move {path} across the ground as if it were ice.",
+      "frictionless-motion": "Movement +{value} ft; ignores Slowed.",
+      "restrained": "Restrained while fully lashed to something larger.",
+      "basic-lashing": "Flying rate {value} ft. Falls when the Lashing ends.",
+      "regrowth": "Recovers health at the start of each of this character's turns (rolled when they're activated in combat).",
+      "hardened-defense": "Physical defense +{value}. Only one Tension infusion raises a character's Physical defense at a time.",
+      "StraightLine": "in a straight line",
+      "AnyPath": "along any path",
+      "slide": "Slide: counts as one size smaller when squeezing through spaces, and has an advantage on tests to escape restraints that hold through friction or pressure.",
+      "swift-regeneration": "Injury rolls +{value} while the caster has Investiture."
+    },
+    "Duration": {
+      "Round": "{n} round",
+      "Rounds": "{n} rounds",
+      "Minutes": "{n} min",
+      "Day": "{n} day",
+      "Days": "{n} days"
     }
   }
 }

@@ -3,6 +3,7 @@ import { HANDBOOK_ID, MODULE_ID, SYSTEM_ID } from '@/constants';
 import { registerSettings } from '@/settings';
 import { initRelay } from '@/core/relay';
 import { initMarkers } from '@/core/markers';
+import { initSubEffects } from '@/core/sub-effects';
 import { initStore } from '@/core/store';
 import { initTurns } from '@/core/turn';
 import { verifyMapping } from '@/core/mapping';
@@ -37,6 +38,7 @@ Hooks.once('ready', () => {
     if (game.system.id !== SYSTEM_ID) return;
     initRelay();
     initMarkers();
+    initSubEffects();
     initStore();
     if (game.user.isGM && game.modules.get(HANDBOOK_ID)?.active) void verifyMapping();
 });

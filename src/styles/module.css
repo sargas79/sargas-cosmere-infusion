@@ -126,20 +126,91 @@
     font-style: italic;
 }
 
-.sci-section {
-    margin: 0.5rem 0;
-    padding: 0.25rem 0.5rem;
-    border: 1px solid rgba(58, 143, 216, 0.45);
-    border-radius: 6px;
+/* Effects tab sections (the system's item-list styles do the rest) */
+.sci-sheet-section .item .controls.sci-controls-3 {
+    width: 56px;
 }
-.sci-section-header {
+.sci-sheet-section .sci-spacer {
+    display: inline-block;
+    width: 14px;
+}
+.sci-sheet-section .sci-target {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+}
+.sci-sheet-section .sci-entity {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 0.25rem;
+    text-align: left;
 }
-.sci-section-header h3 {
+.sci-sheet-section .item .img.sci-portrait {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+}
+.sci-sheet-section .sci-details {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.125rem 0.75rem;
+    margin: 0.25rem 0;
+}
+.sci-sheet-section .sci-details dt {
+    font-weight: 600;
+}
+.sci-sheet-section .sci-details dd {
     margin: 0;
-    border: none;
+}
+.sci-sheet-section .sci-badges .sci-tag:first-child {
+    margin-left: 0;
+}
+
+/* Fallback for the system's controls dropdown, in case its styles are scoped elsewhere. */
+.sci-dropdown {
+    position: absolute;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0.25rem;
+    list-style: none;
+    border-radius: 4px;
+    background: var(--cosmere-color-base-3, var(--color-cool-5, #23221d));
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+.sci-dropdown .control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    white-space: nowrap;
+}
+
+/* Maintain / End toggles in the upkeep window */
+.sci-toggles {
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem;
+}
+.sci-toggle input {
+    display: none;
+}
+.sci-toggle span {
+    display: inline-block;
+    min-width: 5rem;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid rgba(127, 127, 127, 0.5);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.7;
+}
+.sci-toggle input:checked + span {
+    border-color: #3a8fd8;
+    background: rgba(58, 143, 216, 0.3);
+    font-weight: bold;
+    opacity: 1;
 }
 
 .sci-table {
@@ -186,6 +257,10 @@
 .sci-chat ul {
     margin: 0;
     padding-left: 1.1rem;
+}
+.sci-chat ul ul {
+    padding-left: 1rem;
+    list-style: circle;
 }
 .sci-chat-inv {
     margin: 0.25rem 0 0;

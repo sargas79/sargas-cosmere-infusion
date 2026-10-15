@@ -11,6 +11,10 @@ export interface MappingOverrides {
     actionPresets?: Record<string, unknown>;
     /** `power/id` -> talent effects. */
     talentEffects?: Record<string, unknown>;
+    /** Sub-effect id -> sub-effect preset (null removes a default). */
+    subEffects?: Record<string, unknown>;
+    /** Roll formulas: regrowth, swiftHealer. */
+    formulas?: Record<string, string>;
 }
 
 export interface SettingTypes {
@@ -20,6 +24,7 @@ export interface SettingTypes {
     autoPromptOnUse: boolean;
     whisperChat: boolean;
     tokenMarkers: boolean;
+    subEffects: boolean;
     worldTimeDrain: boolean;
     sceneMode: SceneMode;
     sphereTracking: boolean;
@@ -67,6 +72,7 @@ export function registerSettings(mappingMenu: unknown) {
     s('autoPromptOnUse', { scope: 'client', config: true, type: Boolean, default: true });
     s('whisperChat', { scope: 'world', config: true, type: Boolean, default: true });
     s('tokenMarkers', { scope: 'world', config: true, type: Boolean, default: true });
+    s('subEffects', { scope: 'world', config: true, type: Boolean, default: true });
     s('worldTimeDrain', { scope: 'world', config: true, type: Boolean, default: true });
     s('sphereTracking', { scope: 'world', config: true, type: Boolean, default: false });
     s('breatheRefill', { scope: 'world', config: true, type: Boolean, default: false });

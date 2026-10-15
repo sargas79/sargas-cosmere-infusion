@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeInfusion, parseInfusions, surgeScaling } from '@/data/infusion';
-import { DEFAULT_TALENT_EFFECTS } from '@/data/presets';
-import { computeModifiers, type OwnedTalent } from '@/core/modifiers';
+import { DEFAULT_FORMULAS, DEFAULT_SUB_EFFECTS, DEFAULT_TALENT_EFFECTS, HEALING_BONUS_TALENTS } from '@/data/presets';
+import { computeModifiers, regrowthFormula, subEffectsFor, type OwnedTalent } from '@/core/modifiers';
 
 describe('normalizeInfusion', () => {
     it('fills defaults', () => {
@@ -99,7 +99,7 @@ describe('computeModifiers', () => {
                 ...base,
                 surge: 'ill',
                 kind: 'area',
-                talents: [t('ill', 'fourth-ideal-lightweaver')],
+                talents: [t('ill', 'physical-illusion')],
                 physicalIllusion: true,
             }).health,
         ).toBe(10);
@@ -114,5 +114,53 @@ describe('computeModifiers', () => {
         const m = computeModifiers({ ...base, surge: 'adh', kind: 'object', talents: [t('adh', 'extended-adhesion')], squire: true });
         expect(m.everyNRounds).toBe(1);
         expect(m.applied).toEqual([]);
+    });
+});
+
+describe('subEffectsFor', () => {
+    const keys = (surge: string, kind: string, talents: string[] = []) =>
+        subEffectsFor({ surge: surge as never, kind: kind as never }, talents, DEFAULT_SUB_EFFECTS).map((e) => e.key);
+
+    it('gives each surge its effects', () => {
+        expect(keys('abr', 'self')).toEqual(['skate', 'slide']);
+        expect(keys('abr', 'self', ['frictionless-motion'])).toEqual(['skate', 'slide', 'frictionless-motion']);
+        expect(keys('abr', 'object')).toEqual([]);
+        expect(keys('adh', 'character')).toEqual([]);
+        expect(keys('adh', 'character', ['living-adhesion'])).toEqual(['restrained']);
+        expect(keys('grv', 'character')).toEqual(['basic-lashing']);
+        expect(keys('grv', 'object')).toEqual([]);
+        expect(keys('prg', 'character')).toEqual(['regrowth']);
+        expect(keys('prg', 'character', ['swift-regeneration'])).toEqual(['regrowth', 'swift-regeneration']);
+        expect(keys('tsn', 'object')).toEqual(['hardened-defense']);
+    });
+
+    it('applies upgrade talents', () => {
+        const [lashing] = subEffectsFor({ surge: 'grv', kind: 'self' }, ['flying-ace'], DEFAULT_SUB_EFFECTS);
+        expect(lashing.upgraded).toBe(true);
+        expect(lashing.changes[0].value).toBe('40');
+        const [defense] = subEffectsFor({ surge: 'tsn', kind: 'object' }, [], DEFAULT_SUB_EFFECTS);
+        expect(defense.changes[0]).toMatchObject({ key: 'system.defenses.phy.bonus', value: '2' });
+        expect(defense.preset.exclusive).toBe(true);
+    });
+
+    it('Swift Regeneration adds the caster\'s Progression modifier to injury rolls', () => {
+        const [, swift] = subEffectsFor({ surge: 'prg', kind: 'character' }, ['swift-regeneration'], DEFAULT_SUB_EFFECTS);
+        expect(swift.changes[0]).toMatchObject({ key: 'system.injuryRollBonus', value: '@skills.prg.mod' });
+    });
+});
+
+describe('regrowthFormula', () => {
+    const formula = (talents: string[]) =>
+        regrowthFormula(DEFAULT_FORMULAS.regrowth, talents, HEALING_BONUS_TALENTS, DEFAULT_FORMULAS);
+
+    it('is the surge die plus the Progression modifier', () => {
+        expect(formula([])).toBe('1@sci.prgDie + @skills.prg.mod');
+    });
+
+    it('adds Medicine ranks with Swift Healer and Lore ranks with Applied Medicine', () => {
+        expect(formula(['swift-healer'])).toBe('(1@sci.prgDie + @skills.prg.mod) + (@skills.med.rank)');
+        expect(formula(['swift-healer', 'applied-medicine'])).toBe(
+            '(1@sci.prgDie + @skills.prg.mod) + (@skills.med.rank) + (@skills.lor.rank)',
+        );
     });
 });

@@ -17,7 +17,8 @@ interface MarkerOp {
     data: Record<string, unknown> | null;
 }
 
-function targetActor(uuid: string): any {
+/** Actor behind a target uuid (token or actor), or null for objects and free-text targets. */
+export function targetActor(uuid: string): any {
     if (!uuid) return null;
     const doc = fromUuidSync(uuid, { strict: false });
     if (!doc) return null;

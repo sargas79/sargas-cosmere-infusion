@@ -65,6 +65,8 @@ export class InfusionDialog extends HtmlApp {
     private readonly actor: any;
     private readonly editing: Infusion | null;
     private readonly hint: string | undefined;
+    /** The surge came from the action used, so the new-infusion window doesn't ask for it. */
+    private readonly surgeFromAction: boolean;
     private draft: {
         surge: InfusionSurge;
         label: string;
@@ -96,6 +98,7 @@ export class InfusionDialog extends HtmlApp {
         this.actor = actor;
         this.editing = editing;
         this.hint = init.hint;
+        this.surgeFromAction = !editing && !!init.surge;
 
         const surges = actorSurges(actor);
         const surge: InfusionSurge = editing?.surge ?? init.surge ?? surges[0] ?? 'custom';
@@ -261,10 +264,18 @@ export class InfusionDialog extends HtmlApp {
         return `
         <form class="sci-form">
             ${rows.join('')}
-            <div class="form-group"><label>${t('SCI.Field.Surge')}</label>
-                <select name="surge">${options(surgeChoices, s.surge)}</select></div>
-            <div class="form-group"><label>${t('SCI.Field.Label')}</label>
-                <input type="text" name="label" value="${esc(s.label)}" placeholder="${esc(t('SCI.Dialog.LabelPlaceholder'))}"></div>
+            ${
+                this.surgeFromAction
+                    ? ''
+                    : `<div class="form-group"><label>${t('SCI.Field.Surge')}</label>
+                <select name="surge">${options(surgeChoices, s.surge)}</select></div>`
+            }
+            ${
+                this.editing
+                    ? `<div class="form-group"><label>${t('SCI.Field.Label')}</label>
+                <input type="text" name="label" value="${esc(s.label)}" placeholder="${esc(t('SCI.Dialog.LabelPlaceholder'))}"></div>`
+                    : ''
+            }
             <div class="form-group"><label>${t('SCI.Field.Kind')}</label>
                 <select name="kind">${options(kinds.map((k) => [k, t(`SCI.Kind.${k}`)]), s.kind)}</select></div>
             ${
@@ -278,14 +289,7 @@ export class InfusionDialog extends HtmlApp {
             </fieldset>
             <div class="form-group"><label>${t('SCI.Field.Pool')}</label>
                 <input type="number" name="pool" min="1" value="${s.pool}">
-                ${this.editing ? `<p class="hint">${t('SCI.Dialog.EditPoolHint')}</p>` : ''}</div>
-            ${
-                this.editing
-                    ? ''
-                    : `<div class="form-group"><label>${t('SCI.Field.AlreadyPaid')}</label>
-                <input type="number" name="alreadyPaid" min="0" value="${s.alreadyPaid}">
-                <p class="hint sci-charge">${this.chargeText()}</p></div>`
-            }
+                ${this.editing ? `<p class="hint">${t('SCI.Dialog.EditPoolHint')}</p>` : `<p class="hint sci-charge">${this.chargeText()}</p>`}</div>
             <div class="form-group"><label>${t('SCI.Field.Source')}</label>
                 <select name="source">${options(
                     [
@@ -297,6 +301,18 @@ export class InfusionDialog extends HtmlApp {
                     : `<p class="hint">${t(s.kind === 'upkeep' ? 'SCI.Dialog.UpkeepHint' : 'SCI.Dialog.SelfHint')}</p>`
             }
             ${optionRows.length ? `<fieldset><legend>${t('SCI.Dialog.Options')}</legend>${optionRows.join('')}</fieldset>` : ''}
+            ${this.editing ? this.drainFields(usesPool) : ''}
+            <footer class="sci-footer">
+                <button type="button" data-sci-action="save"><i class="fa-solid fa-check"></i> ${t(this.editing ? 'SCI.Common.Save' : 'SCI.Dialog.Create')}</button>
+                <button type="button" data-sci-action="cancel"><i class="fa-solid fa-xmark"></i> ${t('SCI.Common.Cancel')}</button>
+            </footer>
+        </form>`;
+    }
+
+    /** Drain settings and notes; only shown when editing (new infusions use the talent defaults). */
+    private drainFields(usesPool: boolean): string {
+        const s = this.draft;
+        return `
             <fieldset><legend>${t('SCI.Dialog.Drain')}</legend>
                 <div class="form-group"><label>${t('SCI.Field.Cadence')}</label>
                     <select name="cadence">${options(CADENCES.map((c) => [c, t(`SCI.Cadence.${c}`)]), s.cadence)}</select></div>
@@ -314,12 +330,7 @@ export class InfusionDialog extends HtmlApp {
                     <select name="light">${options(LIGHTS.map((l) => [l, t(`SCI.Light.${l}`)]), s.light)}</select></div>
             </fieldset>
             <div class="form-group stacked"><label>${t('SCI.Field.Notes')}</label>
-                <textarea name="notes" rows="2">${esc(s.notes)}</textarea></div>
-            <footer class="sci-footer">
-                <button type="button" data-sci-action="save"><i class="fa-solid fa-check"></i> ${t(this.editing ? 'SCI.Common.Save' : 'SCI.Dialog.Create')}</button>
-                <button type="button" data-sci-action="cancel"><i class="fa-solid fa-xmark"></i> ${t('SCI.Common.Cancel')}</button>
-            </footer>
-        </form>`;
+                <textarea name="notes" rows="2">${esc(s.notes)}</textarea></div>`;
     }
 
     private checkbox(name: string, label: string, value: boolean) {
@@ -345,7 +356,7 @@ export class InfusionDialog extends HtmlApp {
         }
         s.notes = String(f.notes ?? s.notes);
         s.everyNRounds = Math.max(1, intValue(f.everyNRounds, s.everyNRounds));
-        s.freeWhileInvested = !!f.freeWhileInvested;
+        if ('freeWhileInvested' in f) s.freeWhileInvested = !!f.freeWhileInvested;
         if ('reclaimable' in f) s.reclaimable = !!f.reclaimable;
         s.range = Math.max(0, intValue(f.range, s.range));
         if ('health' in f) s.health = Math.max(0, intValue(f.health, s.health));

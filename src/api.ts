@@ -10,7 +10,7 @@ import { normalizeInfusion, surgeScaling, type InfusionInit } from '@/data/infus
 import * as engine from '@/core/engine';
 import { casterState } from '@/core/actor-data';
 import { commit, createInfusion, getInfusions } from '@/core/store';
-import { advanceRoundForAll, runTurnStart } from '@/core/turn';
+import { advanceRoundForAll, runTurnEnd, runTurnStart } from '@/core/turn';
 import { verifyMapping } from '@/core/mapping';
 import { ActorPanel } from '@/apps/actor-panel';
 import { InfusionDialog } from '@/apps/infusion-dialog';
@@ -37,6 +37,8 @@ export function buildApi() {
         damageInfusion: (actor: any, id: string, amount: number) =>
             commit(actor, engine.damageInfusion(casterState(actor), getInfusions(actor), id, amount)),
         runTurnStart: (actor: any, prompt = true) => runTurnStart(actor, { prompt }),
+        /** End-of-turn upkeep (Enhance). */
+        runTurnEnd: (actor: any, prompt = true) => runTurnEnd(actor, { prompt }),
         advanceRound: advanceRoundForAll,
         highstorm,
         verifyMapping,

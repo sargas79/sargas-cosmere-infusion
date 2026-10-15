@@ -7,6 +7,8 @@ import {
     drainExternal,
     endInfusion,
     onInvestitureChanged,
+    durationLeft,
+    resolveTurnEnd,
     resolveTurnStart,
 } from '@/core/engine';
 
@@ -200,5 +202,56 @@ describe('single-infusion operations', () => {
     it('onInvestitureChanged ends self infusions at 0', () => {
         const r = onInvestitureChanged(caster(0), [inf({ label: 'flight', kind: 'self' }), inf({ label: 'crate', pool: 1 })]);
         expect(r.infusions.map((i) => i.label)).toEqual(['crate']);
+    });
+});
+
+describe('end-of-turn upkeep (Enhance)', () => {
+    const enhance = () => inf({ label: 'Enhance', surge: 'upkeep', kind: 'upkeep', timing: 'end' });
+
+    it('is not paid at the start of the turn', () => {
+        const r = resolveTurnStart(caster(3), [enhance()]);
+        expect(r.inv).toBe(3);
+        expect(r.log).toEqual([]);
+    });
+
+    it('is paid at the end of the turn', () => {
+        const r = resolveTurnEnd(caster(3), [enhance(), inf({ label: 'crate', pool: 2 })]);
+        expect(r.inv).toBe(2);
+        expect(r.infusions.find((i) => i.label === 'crate')!.pool).toBe(2);
+        expect(r.log).toContainEqual({ type: 'drained', id: 'Enhance', label: 'Enhance', amount: 1, remaining: null, fromCaster: true });
+    });
+
+    it('is free with the Second Ideal', () => {
+        const r = resolveTurnEnd(caster(3), [enhance()], {}, { free: true });
+        expect(r.inv).toBe(3);
+        expect(r.infusions).toHaveLength(1);
+    });
+
+    it('ends when declined or when the caster has no Investiture', () => {
+        expect(resolveTurnEnd(caster(3), [enhance()], { skipUpkeep: ['Enhance'] }).ended[0].label).toBe('Enhance');
+        const r = resolveTurnEnd(caster(0), [enhance()]);
+        expect(r.log).toContainEqual({ type: 'ended', id: 'Enhance', label: 'Enhance', reason: 'non-invested' });
+    });
+
+    it('is not paid at the end of the turn it was used in (it lasts until the end of the next turn)', () => {
+        const used = inf({ label: 'Enhance', surge: 'upkeep', kind: 'upkeep', timing: 'end', createdAt: { round: 2, worldTime: 0 } });
+        const sameTurn = resolveTurnEnd(caster(3), [used], {}, { graceRound: 2 });
+        expect(sameTurn.inv).toBe(3);
+        expect(sameTurn.infusions).toHaveLength(1);
+        const nextTurn = resolveTurnEnd(caster(3), [used], {}, { graceRound: 3 });
+        expect(nextTurn.inv).toBe(2);
+    });
+});
+
+describe('durationLeft', () => {
+    it('counts pool drains, every-N cadence and the counter', () => {
+        expect(durationLeft(inf({ label: 'a', pool: 3 }), 0)).toBe(3);
+        expect(durationLeft(inf({ label: 'b', pool: 2, drain: { everyNRounds: 3, counter: 1 } }), 0)).toBe(5);
+        expect(durationLeft(inf({ label: 'c', pool: 4, drain: { multiplier: 2 } }), 0)).toBe(2);
+    });
+
+    it('uses the caster for self infusions and is unlimited when free', () => {
+        expect(durationLeft(inf({ label: 'd', kind: 'self' }), 4)).toBe(4);
+        expect(durationLeft(inf({ label: 'e', kind: 'self', freeWhileInvested: true }), 4)).toBeNull();
     });
 });

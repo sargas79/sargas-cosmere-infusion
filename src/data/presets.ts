@@ -5,7 +5,7 @@
  * Talents are matched by `(system.power, system.id)` because some ids repeat across surges.
  * Everything here can be overridden from the module settings (see `core/mapping.ts`).
  */
-import type { Cadence, InfusionKind, RangeBasis, SurgeKey } from './infusion';
+import type { Cadence, InfusionKind, RangeBasis, SurgeKey, UpkeepTiming } from './infusion';
 
 export interface SurgePreset {
     key: SurgeKey;
@@ -55,12 +55,20 @@ export const DEFAULT_SURGE_ACTION_IDS: Record<string, SurgeKey> = {
     transportation: 'trp',
 };
 
+/**
+ * Goal `system.id` prefix that makes Enhance upkeep free once completed. Goal ids carry the order
+ * (`speak-the-second-ideal-windrunner`); the goal name is matched as well.
+ */
+export const SECOND_IDEAL_GOAL = 'speak-the-second-ideal';
+
 /** Talent and action ids that create an infusion themselves (not through a surge action). */
 export interface ActionInfusionPreset {
     surge: SurgeKey | 'upkeep';
     kind: InfusionKind;
     /** Localization key of a short hint shown in the dialog. */
     hint?: string;
+    /** Upkeep paid at the end of the turn instead of the start (Enhance). */
+    timing?: UpkeepTiming;
 }
 
 export const DEFAULT_ACTION_PRESETS: Record<string, ActionInfusionPreset> = {
@@ -71,7 +79,7 @@ export const DEFAULT_ACTION_PRESETS: Record<string, ActionInfusionPreset> = {
     'tension-parry': { surge: 'tsn', kind: 'object', hint: 'SCI.Hint.HardenedDefense' },
     'hardened-defense': { surge: 'tsn', kind: 'object', hint: 'SCI.Hint.HardenedDefense' },
     tunneling: { surge: 'upkeep', kind: 'upkeep' },
-    enhance: { surge: 'upkeep', kind: 'upkeep' },
+    enhance: { surge: 'upkeep', kind: 'upkeep', timing: 'end' },
     'gravitational-support': { surge: 'upkeep', kind: 'upkeep' },
 };
 
@@ -110,12 +118,116 @@ export const DEFAULT_TALENT_EFFECTS: Record<string, TalentEffect[]> = {
     'tsn/stormlight-reclamation': [{ type: 'reclaimable', surge: 'tsn' }],
     'abr/distant-abrasion': [{ type: 'range', surge: 'abr', feet: 20 }],
     'adh/distant-surgebinding': [{ type: 'range', surge: 'adh', feet: 20 }],
-    'tsn/distant-surgebinding': [{ type: 'range', surge: 'tsn', feet: 20 }],
     'chs/distant-cohesion': [{ type: 'range', surge: 'chs', feet: 20 }],
     'tsn/fine-control': [{ type: 'health', surge: 'tsn', perRankOf: 'tsn', when: 'fineControl' }],
-    '*/fourth-ideal-lightweaver': [{ type: 'health', surge: 'ill', perRankOf: 'trs', when: 'physicalIllusion' }],
+    '*/physical-illusion': [{ type: 'health', surge: 'ill', perRankOf: 'trs', when: 'physicalIllusion' }],
     'grv/group-flight': [{ type: 'linkedTargets', surge: 'grv', extra: 'ranksPlusOne' }],
     'grv/aerial-squadron': [{ type: 'linkedTargets', surge: 'grv', extra: 'ranksPlusOne' }],
     'ill/multiplicative-lightweaving': [{ type: 'linkedTargets', surge: 'ill', extra: 'ranksPlusOne' }],
     'grv/multiple-lashings': [{ type: 'unwillingCap', surge: 'grv' }],
 };
+
+/** ActiveEffect change modes (CONST.ACTIVE_EFFECT_MODES). */
+export const EFFECT_MODES = { add: 2, override: 5 } as const;
+
+export interface EffectChange {
+    key: string;
+    mode: number;
+    value: string;
+}
+
+/**
+ * Effects an infusion puts on the character it infuses (the caster for self infusions, otherwise the
+ * targeted characters), shown under the infusion like Enhanced effects under Enhance.
+ */
+export interface SubEffectPreset {
+    surge: SurgeKey;
+    /** Infusion kinds that give the effect. */
+    kinds: InfusionKind[];
+    /** Talent `system.id` the caster needs (any power). */
+    requires?: string;
+    /** Icon; `status` effects use the status icon. */
+    img?: string;
+    /** Status id applied by the effect (e.g. restrained). */
+    status?: string;
+    /**
+     * Changes applied to the infused character. Values may use the caster's roll data, e.g.
+     * `@skills.prg.mod`; they are resolved when the effect is created or updated.
+     */
+    changes?: EffectChange[];
+    /** Caster talent that replaces `changes` (Flying Ace, Clothsmith). */
+    upgrade?: { talent: string; changes: EffectChange[] };
+    /** Rolls the caster's Regrowth healing when the infused character is activated in combat. */
+    regrowth?: boolean;
+    /**
+     * Only one effect with this key counts on a character at a time (a character's Physical defense can't
+     * benefit from more than one Tension surge): extra copies are created disabled.
+     */
+    exclusive?: boolean;
+}
+
+const walkBonus = (feet: number): EffectChange[] => [{ key: 'system.movement.walk.rate.bonus', mode: EFFECT_MODES.add, value: String(feet) }];
+const fly = (feet: number): EffectChange[] => [{ key: 'system.movement.fly.rate.override', mode: EFFECT_MODES.override, value: String(feet) }];
+const physicalDefense = (bonus: number): EffectChange[] => [{ key: 'system.defenses.phy.bonus', mode: EFFECT_MODES.add, value: String(bonus) }];
+
+/** Keys are effect ids; names are localized from `SCI.Effect.<id>`. */
+export const DEFAULT_SUB_EFFECTS: Record<string, SubEffectPreset> = {
+    // Infusing your own body with Abrasion grants Skate and Slide.
+    skate: { surge: 'abr', kinds: ['self'], img: 'icons/svg/ice-aura.svg' },
+    slide: { surge: 'abr', kinds: ['self'], img: 'icons/svg/thrust.svg' },
+    'frictionless-motion': {
+        surge: 'abr',
+        kinds: ['self'],
+        requires: 'frictionless-motion',
+        img: 'icons/svg/upgrade.svg',
+        changes: walkBonus(10),
+    },
+    restrained: { surge: 'adh', kinds: ['character', 'object', 'area'], requires: 'living-adhesion', status: 'restrained', img: 'icons/svg/net.svg' },
+    'basic-lashing': {
+        surge: 'grv',
+        kinds: ['self', 'character'],
+        img: 'icons/svg/wing.svg',
+        changes: fly(25),
+        upgrade: { talent: 'flying-ace', changes: fly(40) },
+    },
+    // Regrowth targets another living character; it heals at the start of each of their turns.
+    regrowth: { surge: 'prg', kinds: ['character'], img: 'icons/svg/regen.svg', regrowth: true },
+    // Swift Regeneration: your Regrowth targets add your Progression modifier to injury rolls.
+    'swift-regeneration': {
+        surge: 'prg',
+        kinds: ['character'],
+        requires: 'swift-regeneration',
+        img: 'icons/svg/heal.svg',
+        changes: [{ key: 'system.injuryRollBonus', mode: EFFECT_MODES.add, value: '@skills.prg.mod' }],
+    },
+    'hardened-defense': {
+        surge: 'tsn',
+        kinds: ['object', 'character', 'area'],
+        img: 'icons/svg/shield.svg',
+        changes: physicalDefense(2),
+        upgrade: { talent: 'clothsmith', changes: physicalDefense(4) },
+        exclusive: true,
+    },
+};
+
+/**
+ * Roll formulas, evaluated with the caster's roll data plus `@sci.prgDie` (the caster's Progression surge
+ * die from the Surge Scaling table: d4 at 1 rank, d6 at 2, ...).
+ */
+export const DEFAULT_FORMULAS = {
+    /** Regrowth healing (1d4 + Progression modifier, die scaling with ranks), when the action has no formula. */
+    regrowth: '1@sci.prgDie + @skills.prg.mod',
+    /** Swift Healer: healing abilities restore extra health equal to the caster's Medicine ranks. */
+    swiftHealer: '@skills.med.rank',
+    /** Applied Medicine: healing abilities restore extra health equal to the caster's Lore ranks. */
+    appliedMedicine: '@skills.lor.rank',
+};
+
+/** Caster talents (`system.id`) that add a formula from `DEFAULT_FORMULAS` to Regrowth healing. */
+export const HEALING_BONUS_TALENTS: Record<string, keyof typeof DEFAULT_FORMULAS> = {
+    'swift-healer': 'swiftHealer',
+    'applied-medicine': 'appliedMedicine',
+};
+
+/** Caster talents that change how Skate works (Smooth Operator: 1 fewer focus; Graceful Skating: any path). */
+export const SKATE_TALENTS = { cheaper: 'smooth-operator', anyPath: 'graceful-skating' } as const;

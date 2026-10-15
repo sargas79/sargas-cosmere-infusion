@@ -1,6 +1,7 @@
 /** Read helpers for cosmere-rpg actors. */
 import { FLAGS, MODULE_ID } from '@/constants';
 import { SURGE_KEYS, type SurgeKey } from '@/data/infusion';
+import { SECOND_IDEAL_GOAL } from '@/data/presets';
 import type { CasterState } from '@/core/engine';
 import type { OwnedTalent } from '@/core/modifiers';
 
@@ -44,6 +45,16 @@ export function actorTalents(actor: any): OwnedTalent[] {
         talents.push({ power: item.system.power ?? null, id: item.system.id, name: item.name });
     }
     return talents;
+}
+
+/** Speak the Second Ideal completed: Enhance upkeep is free. Goals are complete at level 3. */
+export function freeEnhanceUpkeep(actor: any): boolean {
+    return (actor?.items ?? []).some(
+        (item: any) =>
+            item.type === 'goal' &&
+            Number(item.system?.level) >= 3 &&
+            (String(item.system?.id ?? '').startsWith(SECOND_IDEAL_GOAL) || /second ideal/i.test(item.name ?? '')),
+    );
 }
 
 export const isSquire = (actor: any): boolean => !!actor?.getFlag?.(MODULE_ID, FLAGS.squire);

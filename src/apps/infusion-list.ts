@@ -15,7 +15,7 @@ export interface ListOptions {
     gm?: boolean;
 }
 
-function badge(inf: Infusion): string {
+export function badge(inf: Infusion): string {
     const parts: string[] = [];
     if (inf.drain.cadence !== 'round') parts.push(t(`SCI.Cadence.${inf.drain.cadence}`));
     if (inf.drain.everyNRounds > 1) parts.push(t('SCI.List.EveryN', { n: inf.drain.everyNRounds }));
@@ -77,6 +77,14 @@ export async function handleListAction(el: HTMLElement): Promise<boolean> {
     const actor = el.dataset.actor ? await fromUuid(el.dataset.actor) : null;
     const id = el.dataset.id;
     if (!action || !actor || !id) return false;
+    return runListAction(action, actor, id);
+}
+
+/**
+ * Runs an infusion action (add, reclaim, end, damage, drain, multiplier, edit) on the caster's infusion
+ * `id`. Returns false for unknown actions.
+ */
+export async function runListAction(action: string, actor: any, id: string): Promise<boolean> {
     const inf = getInfusions(actor).find((i) => i.id === id);
     if (!inf) return true;
     const state = casterState(actor);
