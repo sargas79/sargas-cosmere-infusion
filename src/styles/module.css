@@ -156,15 +156,14 @@
     display: inline-block;
     width: 14px;
 }
-.sci-sheet-section .item .name {
-    display: flex;
-    align-items: center;
-}
+/* The system makes .name a column; keep the name and description left-aligned (the row centers it vertically). */
 .sci-sheet-section .sci-name {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    align-items: flex-start;
+    text-align: left;
     min-width: 0;
+    max-width: 100%;
 }
 .sci-sheet-section .sci-description {
     font-size: var(--font-size-11, 0.8em);
