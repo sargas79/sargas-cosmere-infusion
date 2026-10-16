@@ -8,11 +8,12 @@
  * reuses the system's item-list classes so the tables look like the system's own, but uses its own
  * `data-sci-*` attributes: the system's `data-action` handlers belong to its sheet components.
  */
-import { MARKER_ICON, MODULE_ID } from '@/constants';
-import { SURGE_KEYS, drawsFromCaster, type Infusion } from '@/data/infusion';
+import { MODULE_ID } from '@/constants';
+import { drawsFromCaster, type Infusion } from '@/data/infusion';
 import { InfusionDialog, userTargets } from '@/apps/infusion-dialog';
 import { badge, runListAction } from '@/apps/infusion-list';
-import { actorSurges, allActors, casterState } from '@/core/actor-data';
+import { infusionDescription, infusionTitle } from '@/core/chat';
+import { actorSurges, allActors, casterState, infusionIcon } from '@/core/actor-data';
 import { addInvestiture, durationLeft } from '@/core/engine';
 import { targetActor } from '@/core/markers';
 import { commit, getInfusions } from '@/core/store';
@@ -47,16 +48,6 @@ export function activeInfusionsOn(actor: any): { caster: any; inf: Infusion }[] 
     return found;
 }
 
-/** Infusion art: the action used to create it, else the caster's surge power, else the module icon. */
-function infusionIcon(caster: any, inf: Infusion): string {
-    const source = inf.sourceItemUuid ? fromUuidSync(inf.sourceItemUuid, { strict: false }) : null;
-    if (source?.img) return source.img;
-    const power = caster.items?.find?.((i: any) => i.type === 'power' && i.system?.id === inf.surge);
-    return power?.img ?? MARKER_ICON;
-}
-
-const isSurge = (surge: string) => (SURGE_KEYS as readonly string[]).includes(surge);
-
 /** A character with its portrait in a bordered box, or a plain name for objects and text targets. */
 function entity(name: string, img?: string | null): string {
     return `<span class="sci-entity">${img ? `<span class="img sci-portrait"><img src="${esc(img)}" alt=""></span>` : ''}<span class="sci-entity-name">${esc(name)}</span></span>`;
@@ -74,6 +65,8 @@ function targetCell(caster: any, inf: Infusion): string {
 }
 
 function durationCell(caster: any, inf: Infusion): string {
+    // Self infusions and upkeep effects last as long as the caster keeps paying for them.
+    if (drawsFromCaster(inf)) return `<span>${esc(t('SCI.Duration.Sustained'))}</span>`;
     const left = durationLeft(inf, casterState(caster).inv);
     if (left == null) return `<span data-tooltip="${esc(t('SCI.Prompt.Free'))}">∞</span>`;
     const one = left === 1;
@@ -85,6 +78,12 @@ function durationCell(caster: any, inf: Infusion): string {
     return `<span>${esc(t(key, { n: inf.drain.cadence === '10min' ? left * 10 : left }))}</span>`;
 }
 
+/** Surge name, with the optional description in gray under it. */
+function nameCell(inf: Infusion): string {
+    const description = infusionDescription(inf);
+    return `<div class="name" data-sci-act="details"><span class="sci-name"><span>${esc(infusionTitle(inf))}</span>${description ? `<span class="sci-description">${esc(description)}</span>` : ''}</span></div>`;
+}
+
 function detailsHtml(caster: any, inf: Infusion, withCaster: boolean): string {
     const rows: [string, string][] = [];
     if (withCaster) rows.push([t('SCI.Section.Source'), esc(caster.name)]);
@@ -94,6 +93,7 @@ function detailsHtml(caster: any, inf: Infusion, withCaster: boolean): string {
     if (inf.targets.length) rows.push([t('SCI.Field.Targets'), esc(inf.targets.map((tg) => tg.name).join(', '))]);
     if (inf.health) rows.push([t('SCI.Field.Health'), `${inf.health.value}/${inf.health.max}`]);
     if (inf.talents.length) rows.push([t('SCI.Section.Talents'), esc(inf.talents.join(', '))]);
+    if (infusionDescription(inf)) rows.push([t('SCI.Field.Label'), esc(infusionDescription(inf))]);
     if (inf.notes) rows.push([t('SCI.Field.Notes'), esc(inf.notes)]);
     const tags = badge(inf);
     return `<dl class="sci-details">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>${tags ? `<p class="sci-badges">${tags}</p>` : ''}`;
@@ -109,11 +109,10 @@ const canManage = (caster: any) => caster.isOwner || game.user.isGM;
 function sustainedRow(actor: any, inf: Infusion): string {
     const open = expanded.has(`${actor.uuid}|${inf.id}`);
     const add = actor.isOwner && !drawsFromCaster(inf) ? icon('add', 'fa-plus', t('SCI.Section.AddOne')) : '<span class="sci-spacer"></span>';
-    const surge = inf.kind === 'upkeep' || !isSurge(inf.surge) ? '' : `<span class="traits">${esc(t(`SCI.Surge.${inf.surge}`))}</span>`;
     return `<li class="item effect collapsible ${open ? 'expanded' : ''}" data-sci-row="${inf.id}" data-sci-caster="${esc(actor.uuid)}" data-sci-id="${inf.id}">
         <section class="details">
             <div class="img"><img src="${esc(infusionIcon(actor, inf))}" alt=""></div>
-            <div class="name" data-sci-act="details"><span>${esc(inf.label)}</span>${surge}</div>
+            ${nameCell(inf)}
             <div class="detail extrawide sci-target">${targetCell(actor, inf)}</div>
             <div class="detail wide">${durationCell(actor, inf)}</div>
             <div class="controls icon faded sci-controls-3">${add}${detailsToggle(open)}${canManage(actor) ? icon('menu', 'fa-ellipsis-vertical', 'APPLICATION.TOOLS.ToggleControls') : ''}</div>
@@ -124,12 +123,12 @@ function sustainedRow(actor: any, inf: Infusion): string {
 
 function activeRows(actor: any, caster: any, inf: Infusion): string {
     const open = expanded.has(`${actor.uuid}|${inf.id}`);
-    const surge = isSurge(inf.surge) ? `<span class="traits">${esc(t(`SCI.Surge.${inf.surge}`))}</span>` : '';
     const parent = `<li class="item effect collapsible ${open ? 'expanded' : ''}" data-sci-row="${inf.id}" data-sci-caster="${esc(caster.uuid)}" data-sci-id="${inf.id}">
         <section class="details">
             <div class="img"><img src="${esc(infusionIcon(caster, inf))}" alt=""></div>
-            <div class="name" data-sci-act="details"><span>${esc(inf.label)}</span>${surge}</div>
+            ${nameCell(inf)}
             <div class="detail extrawide sci-target">${entity(caster.name, caster.img)}</div>
+            <div class="detail wide">${durationCell(caster, inf)}</div>
             <div class="detail thin action"></div>
             <div class="controls icon faded">${detailsToggle(open)}${canManage(caster) ? icon('menu', 'fa-ellipsis-vertical', 'APPLICATION.TOOLS.ToggleControls') : ''}</div>
         </section>
@@ -146,6 +145,7 @@ function activeRows(actor: any, caster: any, inf: Infusion): string {
                     <div class="img"><img src="${esc(effect.img)}" alt=""></div>
                     <div class="name" data-sci-act="details"><span>${esc(effect.name)}</span></div>
                     <div class="detail extrawide"></div>
+                    <div class="detail wide"></div>
                     <div class="detail thin action">${toggle}</div>
                     <div class="controls icon faded">${detailsToggle(childOpen)}</div>
                 </section>
@@ -183,6 +183,7 @@ function activeSection(actor: any, active: { caster: any; inf: Infusion }[]): HT
         <section class="details">
             <span class="title">${esc(t('SCI.Section.Active'))}</span>
             <span class="subtitle extrawide">${esc(t('SCI.Section.Source'))}</span>
+            <span class="subtitle wide">${esc(t('SCI.Section.Duration'))}</span>
             <div class="subtitle thin"></div>
             <div class="controls icon active"><div></div></div>
         </section>
@@ -245,8 +246,6 @@ function menuItems(caster: any, inf: Infusion, kind: SectionKind): MenuItem[] {
     if (kind === 'sustained') {
         if (owner && !drawsFromCaster(inf) && inf.reclaimable) items.push({ label: t('SCI.List.Reclaim'), icon: 'fa-solid fa-rotate-left', run: run('reclaim') });
         if ((owner || gm) && inf.health) items.push({ label: t('SCI.List.Damage'), icon: 'fa-solid fa-burst', run: run('damage') });
-        if (gm) items.push({ label: t('SCI.List.DrainExternal'), icon: 'fa-solid fa-feather', run: run('drain') });
-        if (gm) items.push({ label: t('SCI.List.Multiplier'), icon: 'fa-solid fa-fire', run: run('multiplier') });
     }
     if (owner || gm) items.push({ label: t('SCI.Common.Remove'), icon: 'fa-solid fa-trash', run: run('end') });
     return items;

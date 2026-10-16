@@ -3,16 +3,16 @@
  * Hardened Defense...), shown under the infusion in the Active Infusions section. They are created and
  * removed with the infusion, like markers; the effect's `disabled` state is left to the user.
  */
-import { FLAGS, MARKER_ICON, MODULE_ID } from '@/constants';
+import { FLAGS, MARKER_ICON, MODULE_ID, SYSTEM_ID } from '@/constants';
 import { parseInfusions, surgeScaling, type Infusion } from '@/data/infusion';
 import { HEALING_BONUS_TALENTS, SKATE_TALENTS, type EffectChange } from '@/data/presets';
-import { actorTalents, isSquire, preferredRunner, surgeRanks } from '@/core/actor-data';
+import { actorTalents, infusionIcon, isSquire, preferredRunner, surgeRanks } from '@/core/actor-data';
 import { getMapping } from '@/core/mapping';
 import { targetActor } from '@/core/markers';
 import { regrowthFormula, subEffectsFor } from '@/core/modifiers';
 import { asGM, asUser, registerHandler } from '@/core/relay';
 import { getSetting } from '@/settings';
-import { t, warn } from '@/utils';
+import { esc, t, warn } from '@/utils';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -191,6 +191,13 @@ function regrowthRoll(caster: any, inf: { sourceItemUuid: string | null }): { fo
     return { formula: regrowthFormula(own || formulas.regrowth, talents, HEALING_BONUS_TALENTS, formulas), data };
 }
 
+/** The card's top section, like an item's: the infusion art, Progression, and who keeps it up. */
+function regrowthHeader(caster: any, inf: Infusion): string {
+    return `<section class="chat-card-section description"><header class="summary"><img src="${esc(infusionIcon(caster, inf))}" alt="">
+        <div class="name-stacked"><span class="title">${esc(t('SCI.Surge.prg'))}</span>
+        <span class="subtitle">${esc(t('SCI.Chat.Regrowth', { caster: caster.name }))}</span></div></header></section>`;
+}
+
 async function rollRegrowth(actor: any) {
     for (const effect of actor.effects.filter((e: any) => subFlag(e)?.key === 'regrowth' && !e.disabled)) {
         const flag = subFlag(effect)!;
@@ -199,11 +206,13 @@ async function rollRegrowth(actor: any) {
         if (!inf) continue;
         const { formula, data } = regrowthRoll(caster, inf);
         try {
-            const roll = await new Roll(formula, data).evaluate();
-            await roll.toMessage({
-                speaker: ChatMessage.getSpeaker({ actor }),
-                flavor: t('SCI.Chat.Regrowth', { name: actor.name, caster: caster.name }),
-            });
+            // The system's healing roll, so the card matches its own (Healing section, apply buttons).
+            const DamageRoll = CONFIG.Dice.rolls.find((R: any) => R.name === 'DamageRoll');
+            const roll = await (DamageRoll ? new DamageRoll(formula, data, { damageType: 'heal' }) : new Roll(formula, data)).evaluate();
+            const speaker = ChatMessage.getSpeaker({ actor });
+            // The system card replaces the message content, so only use it when it can show the roll.
+            if (DamageRoll) await roll.toMessage({ speaker, flags: { [SYSTEM_ID]: { message: { type: 'action', description: regrowthHeader(caster, inf) } } } });
+            else await roll.toMessage({ speaker, flavor: `${t('SCI.Surge.prg')}: ${t('SCI.Chat.Regrowth', { caster: caster.name })}` });
             if (typeof actor.applyHealing === 'function') await actor.applyHealing(roll.total);
         } catch (err) {
             warn(`Regrowth formula "${formula}" failed`, err);

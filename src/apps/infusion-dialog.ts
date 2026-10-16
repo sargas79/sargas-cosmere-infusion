@@ -211,6 +211,8 @@ export class InfusionDialog extends HtmlApp {
         const preset = isSurgeKey(s.surge) ? SURGE_PRESETS[s.surge] : null;
         const kinds = preset?.kinds ?? ALL_KINDS;
         const usesPool = !drawsFromCaster({ kind: s.kind });
+        // Areas and surfaces are described in the description field instead of picking targets.
+        const hasTargets = usesPool && s.kind !== 'area';
         const scaling = isSurgeKey(s.surge) ? surgeScaling(ranks[s.surge] ?? 0) : null;
 
         const rows: string[] = [];
@@ -240,7 +242,7 @@ export class InfusionDialog extends HtmlApp {
             : `<li class="sci-empty">${t('SCI.Dialog.NoTargets')}</li>`;
         // Surge size: tokens larger than the surge's maximum size can't normally be infused.
         const tooLarge =
-            scaling && s.kind !== 'self'
+            scaling && hasTargets
                 ? s.targets.filter((tg) => {
                       const doc = tg.uuid ? fromUuidSync(tg.uuid, { strict: false }) : null;
                       if (doc?.documentName !== 'Token') return false;
@@ -248,7 +250,7 @@ export class InfusionDialog extends HtmlApp {
                       return feet > scaling.feet;
                   })
                 : [];
-        const tooMany = s.maxTargets > 0 ? s.targets.length > s.maxTargets : s.targets.length > 1 && s.kind !== 'area';
+        const tooMany = hasTargets && (s.maxTargets > 0 ? s.targets.length > s.maxTargets : s.targets.length > 1);
 
         const optionRows: string[] = [];
         if (s.surge === 'tsn') {
@@ -270,25 +272,28 @@ export class InfusionDialog extends HtmlApp {
                     : `<div class="form-group"><label>${t('SCI.Field.Surge')}</label>
                 <select name="surge">${options(surgeChoices, s.surge)}</select></div>`
             }
-            ${
-                this.editing
-                    ? `<div class="form-group"><label>${t('SCI.Field.Label')}</label>
-                <input type="text" name="label" value="${esc(s.label)}" placeholder="${esc(t('SCI.Dialog.LabelPlaceholder'))}"></div>`
-                    : ''
-            }
             <div class="form-group"><label>${t('SCI.Field.Kind')}</label>
                 <select name="kind">${options(kinds.map((k) => [k, t(`SCI.Kind.${k}`)]), s.kind)}</select></div>
+            <div class="form-group"><label>${t('SCI.Field.Label')}</label>
+                <input type="text" name="label" value="${esc(s.label)}" placeholder="${esc(t('SCI.Dialog.LabelPlaceholder'))}"></div>
+            <p class="hint">${t(s.kind === 'area' ? 'SCI.Dialog.LabelHintArea' : 'SCI.Dialog.LabelHint')}</p>
             ${
-                usesPool
+                hasTargets
                     ? `<fieldset><legend>${t('SCI.Field.Targets')}</legend>
                 <ul class="sci-targets">${targetList}</ul>
                 ${tooLarge.length ? `<p class="sci-warning">${t('SCI.Dialog.TooLarge', { names: esc(tooLarge.map((tg) => tg.name).join(', ')), size: t(`SCI.Size.${scaling!.size}`) })}</p>` : ''}
                 ${tooMany ? `<p class="sci-warning">${t('SCI.Dialog.TooManyTargets', { max: Math.max(1, s.maxTargets) })}</p>` : ''}
                 <div class="sci-buttons"><button type="button" data-sci-action="useTargets"><i class="fa-solid fa-bullseye"></i> ${t('SCI.Dialog.UseTargets')}</button>
                 <button type="button" data-sci-action="addTextTarget"><i class="fa-solid fa-font"></i> ${t('SCI.Dialog.AddTextTarget')}</button></div>
-            </fieldset>
-            <div class="form-group"><label>${t('SCI.Field.Pool')}</label>
-                <input type="number" name="pool" min="1" value="${s.pool}">
+            </fieldset>`
+                    : ''
+            }
+            ${
+                usesPool
+                    ? `<div class="form-group sci-pool-group"><label>${t('SCI.Field.Pool')}</label>
+                <span class="sci-stepper"><input type="number" name="pool" min="1" value="${s.pool}"><span class="sci-stepper-buttons">
+                    <a data-sci-action="poolStep" data-step="1" title="${esc(t('SCI.Dialog.PoolUp'))}"><i class="fa-solid fa-caret-up"></i></a>
+                    <a data-sci-action="poolStep" data-step="-1" title="${esc(t('SCI.Dialog.PoolDown'))}"><i class="fa-solid fa-caret-down"></i></a></span></span>
                 ${this.editing ? `<p class="hint">${t('SCI.Dialog.EditPoolHint')}</p>` : `<p class="hint sci-charge">${this.chargeText()}</p>`}</div>
             <div class="form-group"><label>${t('SCI.Field.Source')}</label>
                 <select name="source">${options(
@@ -424,6 +429,15 @@ export class InfusionDialog extends HtmlApp {
                 if (name) this.draft.targets.push({ uuid: '', name: String(name) });
                 return void this.render();
             }
+            case 'poolStep': {
+                // In place, like typing: a re-render would lose a click that follows.
+                this.draft.pool = Math.max(1, this.draft.pool + Number(target.dataset.step));
+                const input = this.element.querySelector<HTMLInputElement>('input[name="pool"]');
+                if (input) input.value = String(this.draft.pool);
+                const hint = this.element.querySelector('.sci-charge');
+                if (hint) hint.textContent = this.chargeText();
+                return;
+            }
             case 'removeTarget':
                 this.draft.targets.splice(Number(target.dataset.index), 1);
                 return void this.render();
@@ -440,13 +454,12 @@ export class InfusionDialog extends HtmlApp {
             ui.notifications.warn('SCI.Notify.NotEnoughInvestiture', { localize: true });
             return;
         }
-        const label = s.label || s.targets.map((tg) => tg.name).join(', ') || t(`SCI.Surge.${s.surge}`);
         const data = {
             ...(this.editing ?? {}),
             surge: s.surge,
-            label,
+            label: s.label.trim(),
             kind: s.kind,
-            targets: usesPool ? s.targets : [],
+            targets: usesPool && s.kind !== 'area' ? s.targets : [],
             pool: s.pool,
             source: s.source,
             light: s.light,

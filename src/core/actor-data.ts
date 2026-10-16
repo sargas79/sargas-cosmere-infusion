@@ -1,6 +1,6 @@
 /** Read helpers for cosmere-rpg actors. */
-import { FLAGS, MODULE_ID } from '@/constants';
-import { SURGE_KEYS, type SurgeKey } from '@/data/infusion';
+import { FLAGS, MARKER_ICON, MODULE_ID } from '@/constants';
+import { SURGE_KEYS, type Infusion, type SurgeKey } from '@/data/infusion';
 import { SECOND_IDEAL_GOAL } from '@/data/presets';
 import type { CasterState } from '@/core/engine';
 import type { OwnedTalent } from '@/core/modifiers';
@@ -102,4 +102,12 @@ export function allActors(): any[] {
         }
     }
     return actors;
+}
+
+/** Infusion art: the action used to create it, else the caster's surge power, else the module icon. */
+export function infusionIcon(caster: any, inf: Infusion): string {
+    const source = inf.sourceItemUuid ? fromUuidSync(inf.sourceItemUuid, { strict: false }) : null;
+    if (source?.img) return source.img;
+    const power = caster.items?.find?.((i: any) => i.type === 'power' && i.system?.id === inf.surge);
+    return power?.img ?? MARKER_ICON;
 }
