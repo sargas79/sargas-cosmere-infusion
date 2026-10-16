@@ -144,7 +144,8 @@
       "Regenerate": "Regenerate",
       "Use": "Use",
       "DontUse": "Do not use",
-      "NoInvestiture": "No Investiture"
+      "NoInvestiture": "No Investiture",
+      "LastInvestiture": "Spends your last Investiture: your sustained infusions end."
     },
     "List": {
       "Empty": "No active infusions.",
@@ -248,6 +249,7 @@
       "Highstorm": "Highstorm: {count} spheres infused.",
       "NoGMForCommit": "No GM is connected: this change can't be applied to an actor you don't own.",
       "RegenerateFailed": "Regenerate couldn't be used. Use it from the character sheet.",
+      "RegenerateNoInvestiture": "Regenerate: not enough Investiture left after the upkeep.",
       "RegrowthFailed": "Regrowth: the healing formula \"{formula}\" couldn't be rolled. Check it in Surge and talent mapping."
     },
     "Settings": {

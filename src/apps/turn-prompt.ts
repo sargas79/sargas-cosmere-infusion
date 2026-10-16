@@ -5,7 +5,7 @@
  */
 import { HtmlApp } from '@/apps/base';
 import { drawsFromCaster, type Infusion } from '@/data/infusion';
-import { upkeepCost, type CasterState, type TurnDecisions } from '@/core/engine';
+import { regenerateBudget, upkeepCost, type CasterState, type RegenerateBudget, type TurnDecisions } from '@/core/engine';
 import { infusionDescription, infusionTitle } from '@/core/chat';
 import { esc, t } from '@/utils';
 
@@ -13,11 +13,19 @@ import { esc, t } from '@/utils';
 
 export type PromptPhase = 'start' | 'end';
 
+/** Offer of the Regenerate action, with what it needs to check it can be paid after the upkeep. */
+export interface RegenerateOffer {
+    /** Every infusion resolved at this turn start (the drain runs before Regenerate). */
+    infusions: Infusion[];
+    round: number | null;
+    cost: number;
+}
+
 export interface PromptExtras {
     /** Infusions with a pool the caster may reclaim (Stormlight Reclamation). */
     reclaim?: Infusion[];
-    /** Offer the Regenerate action; `damaged` makes Use the default. */
-    regenerate?: { damaged: boolean } | null;
+    /** Offer the Regenerate action (the character is hurt). Use is the default when it can be paid. */
+    regenerate?: RegenerateOffer | null;
 }
 
 export interface PromptResult extends TurnDecisions {
@@ -61,7 +69,7 @@ export class TurnPrompt extends HtmlApp {
         private readonly extras: PromptExtras = {},
     ) {
         super();
-        // Closing the window keeps the defaults: what can't be paid ends, Regenerate is used when hurt.
+        // Closing the window keeps the defaults: what can't be paid ends, Regenerate is used if it can be paid.
         this.decisions = this.defaults();
     }
 
@@ -100,8 +108,11 @@ export class TurnPrompt extends HtmlApp {
         return upkeepCost(inf, this.available) <= this.available;
     }
 
-    private canRegenerate(): boolean {
-        return this.available >= 1;
+    /** Regenerate is paid after the drain, from what the chosen upkeep and reclaims leave. */
+    private regenerate(decisions: TurnDecisions): RegenerateBudget {
+        const offer = this.extras.regenerate;
+        if (!offer) return { affordable: false, endsSustained: false };
+        return regenerateBudget(this.caster, offer.infusions, decisions, { round: offer.round }, offer.cost);
     }
 
     private defaults(): PromptResult {
@@ -109,8 +120,23 @@ export class TurnPrompt extends HtmlApp {
         for (const inf of this.infusions) {
             if (!this.canMaintain(inf)) (inf.kind === 'upkeep' ? result.skipUpkeep! : result.end!).push(inf.id);
         }
-        result.regenerate = !!this.extras.regenerate?.damaged && this.canRegenerate();
+        result.regenerate = this.regenerate(result).affordable;
         return result;
+    }
+
+    /** The choices in the form; Regenerate only if what is left after the upkeep pays for it. */
+    private fromForm(): PromptResult {
+        const form = this.readForm();
+        const decisions: PromptResult = { end: [], skipUpkeep: [], reclaim: [] };
+        for (const inf of this.infusions) {
+            if (form[`choice-${inf.id}`] !== 'end' && this.canMaintain(inf)) continue;
+            (inf.kind === 'upkeep' ? decisions.skipUpkeep! : decisions.end!).push(inf.id);
+        }
+        for (const inf of this.extras.reclaim ?? []) {
+            if (form[`reclaim-${inf.id}`] === 'reclaim') decisions.reclaim!.push(inf.id);
+        }
+        decisions.regenerate = form.regenerate === 'use' && this.regenerate(decisions).affordable;
+        return decisions;
     }
 
     private row(title: string, description: string, name: string, choices: Choice[]): string {
@@ -143,15 +169,17 @@ export class TurnPrompt extends HtmlApp {
             const description = [infusionDescription(inf), t('SCI.Prompt.PoolLeft', { pool: inf.pool })].filter(Boolean).join(' · ');
             rows.push(
                 this.row(infusionTitle(inf), description, `reclaim-${inf.id}`, [
-                    { value: 'keep', label: t('SCI.Prompt.Keep'), checked: true },
-                    { value: 'reclaim', label: t('SCI.Prompt.Reclaim'), checked: false },
+                    { value: 'keep', label: t('SCI.Prompt.Keep'), checked: !d.reclaim!.includes(inf.id) },
+                    { value: 'reclaim', label: t('SCI.Prompt.Reclaim'), checked: d.reclaim!.includes(inf.id) },
                 ]),
             );
         }
         if (this.extras.regenerate) {
+            const { affordable, endsSustained } = this.regenerate(d);
+            const note = !affordable ? t('SCI.Prompt.NoInvestiture') : endsSustained ? t('SCI.Prompt.LastInvestiture') : '';
             rows.push(
-                this.row(t('SCI.Prompt.Regenerate'), this.canRegenerate() ? '' : t('SCI.Prompt.NoInvestiture'), 'regenerate', [
-                    { value: 'use', label: t('SCI.Prompt.Use'), checked: !!d.regenerate, disabled: !this.canRegenerate() },
+                this.row(t('SCI.Prompt.Regenerate'), note, 'regenerate', [
+                    { value: 'use', label: t('SCI.Prompt.Use'), checked: !!d.regenerate, disabled: !affordable },
                     { value: 'skip', label: t('SCI.Prompt.DontUse'), checked: !d.regenerate },
                 ]),
             );
@@ -171,19 +199,16 @@ export class TurnPrompt extends HtmlApp {
         </form>`;
     }
 
+    /** Maintaining, ending or reclaiming changes what is left for Regenerate: redraw its row. */
+    protected async onInputChange() {
+        if (!this.extras.regenerate) return;
+        this.decisions = this.fromForm();
+        await this.render();
+    }
+
     protected async onAction(action: string) {
         if (action !== 'continue') return;
-        const form = this.readForm();
-        const decisions: PromptResult = { end: [], skipUpkeep: [], reclaim: [] };
-        for (const inf of this.infusions) {
-            if (form[`choice-${inf.id}`] !== 'end' && this.canMaintain(inf)) continue;
-            (inf.kind === 'upkeep' ? decisions.skipUpkeep! : decisions.end!).push(inf.id);
-        }
-        for (const inf of this.extras.reclaim ?? []) {
-            if (form[`reclaim-${inf.id}`] === 'reclaim') decisions.reclaim!.push(inf.id);
-        }
-        decisions.regenerate = form.regenerate === 'use' && this.canRegenerate();
-        this.decisions = decisions;
+        this.decisions = this.fromForm();
         await this.close();
     }
 }

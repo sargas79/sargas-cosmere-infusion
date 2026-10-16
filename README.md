@@ -30,7 +30,7 @@ https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/mod
 - **Start of turn.** When a combatant activates their fast or slow turn in the tracker, their infusions drain once. The player who owns the character first gets a window with:
   - **Maintain** / **End** for each sustained infusion and upkeep effect. Maintain is disabled when you can't pay for it; closing the window keeps everything you can pay for.
   - **Keep** / **Reclaim** for infusions with a pool, when you have Stormlight Reclamation for their surge. Reclaiming ends the infusion after the drain and returns what is left.
-  - **Use** / **Do not use** for Regenerate, when the character has that action. *Use* is preselected when they're hurt; it uses the action (the system charges its Investiture) and applies the healing it rolls.
+  - **Use** / **Do not use** for Regenerate, when the character has that action and is hurt. It is paid after the upkeep, so *Use* is preselected only when the Investiture left pays for it, and is disabled otherwise (ending an infusion in the same window frees Investiture for it). It uses the action without the system's consume dialog, spends its Investiture and applies the healing it rolls. If it spends the last Investiture, the window warns that sustained infusions end.
 
   The GM gets the window for adversaries and offline players.
 - **Enhance at the end of the turn.** Enhance lasts until the end of the turn after the one it was used in. From then on, it asks *Maintain / End* when the character's turn ends (another combatant activates, or the round ends). No window when it's free (the *Speak the Second Ideal* goal is completed) or when there's no Investiture left (it ends).

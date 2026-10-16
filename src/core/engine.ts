@@ -206,6 +206,35 @@ export function resolveTurnStart(
     return w.result();
 }
 
+/** Investiture the Regenerate action costs (Stormlight Handbook, ch. 5). */
+export const REGENERATE_COST = 1;
+
+export interface RegenerateBudget {
+    /** Enough Investiture is left after the turn-start upkeep to pay for Regenerate. */
+    affordable: boolean;
+    /** Paying for Regenerate spends the last Investiture: the caster becomes non-Invested and sustained infusions end. */
+    endsSustained: boolean;
+}
+
+/**
+ * Whether Regenerate can be paid at the start of the turn. It is used after the drain, so it is paid
+ * from what is left once the caster's decisions (maintain, end, reclaim) are resolved.
+ */
+export function regenerateBudget(
+    caster: CasterState,
+    infusions: Infusion[],
+    decisions: TurnDecisions = {},
+    options: TurnOptions = {},
+    cost = REGENERATE_COST,
+): RegenerateBudget {
+    const after = resolveTurnStart(caster, infusions, decisions, options);
+    const left = after.inv - cost;
+    return {
+        affordable: left >= 0,
+        endsSustained: left === 0 && after.infusions.some((inf) => inf.kind === 'self' && inf.sustained),
+    };
+}
+
 export interface TurnEndOptions {
     /** Upkeep is free this turn (Speak the Second Ideal makes Enhance free). */
     free?: boolean;

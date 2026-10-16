@@ -50,7 +50,8 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 - [ ] The window lists sustained infusions and upkeep effects, each with Maintain / End toggles (only one can be selected). Infusions with a pool drain without a window.
 - [ ] With Investiture 0 (and not Empowered), Maintain is disabled and End is selected for anything that costs Investiture this turn.
 - [ ] With Stormlight Reclamation for the surge, infusions with a pool are listed with Keep / Reclaim. Reclaim ends the infusion after the drain and returns the rest of the pool (capped at max).
-- [ ] A character with the Regenerate action gets a Regenerate row (Use / Do not use). Unhurt: *Do not use* is selected. Hurt: *Use* is selected; continuing uses Regenerate (its Investiture is spent, its card posted) and heals the rolled amount. No Investiture: Use is disabled.
+- [ ] A hurt character with the Regenerate action gets a Regenerate row (Use / Do not use); at full health there's no row (and no window if nothing else is asked). *Use* is selected; continuing uses Regenerate with no consume dialog, spends 1 Investiture, posts its card and heals the rolled amount.
+- [ ] Regenerate budget: 1 Investiture and a sustained infusion: Use is disabled while Maintain is chosen; choosing End enables it. 2 Investiture and a sustained infusion: Use shows the last-Investiture warning, and using it ends the infusion.
 - [ ] Nothing to ask (no sustained infusion, upkeep, reclaimable infusion or Regenerate): no window, the drain still happens.
 - [ ] Closing the window keeps the defaults and still drains.
 - [ ] Chat: a "TRIGGERS" card (bolt icon, Skill Test header style). Each row has the infusion art, **Tension** on **Selaneth**, and a small gray update: *Drained 1 · 3 left*, *Maintained*, *Reclaimed 2*, *Ended: out of Investiture*, *Ended*.

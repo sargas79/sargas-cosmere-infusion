@@ -7,6 +7,7 @@ import {
     drainExternal,
     endInfusion,
     onInvestitureChanged,
+    regenerateBudget,
     durationLeft,
     resolveTurnEnd,
     resolveTurnStart,
@@ -278,5 +279,44 @@ describe('sustained infusions (#49)', () => {
         expect(upkeepCost(inf({ label: 's', kind: 'self', freeWhileInvested: true }), 3)).toBe(0);
         expect(upkeepCost(inf({ label: 's', kind: 'self', drain: { everyNRounds: 3, counter: 0 } }), 3)).toBe(0);
         expect(upkeepCost(inf({ label: 'crate', pool: 3 }), 3)).toBe(0);
+    });
+});
+
+describe('Regenerate budget (#52)', () => {
+    const flight = () => inf({ label: 'flight', kind: 'self' });
+
+    it('is paid from what is left after the upkeep', () => {
+        // 1 Investiture: maintaining flight takes it, nothing is left for Regenerate.
+        expect(regenerateBudget(caster(1), [flight()]).affordable).toBe(false);
+        expect(regenerateBudget(caster(2), [flight()]).affordable).toBe(true);
+    });
+
+    it('ending or skipping the upkeep frees Investiture for it', () => {
+        expect(regenerateBudget(caster(1), [flight()], { end: ['flight'] }).affordable).toBe(true);
+        const enhance = inf({ label: 'tunnel', kind: 'upkeep' });
+        expect(regenerateBudget(caster(1), [enhance]).affordable).toBe(false);
+        expect(regenerateBudget(caster(1), [enhance], { skipUpkeep: ['tunnel'] }).affordable).toBe(true);
+    });
+
+    it('counts what a reclaim recovers and what Empowered refills', () => {
+        const crate = inf({ label: 'crate', pool: 3, reclaimable: true });
+        expect(regenerateBudget(caster(0), [crate]).affordable).toBe(false);
+        expect(regenerateBudget(caster(0), [crate], { reclaim: ['crate'] }).affordable).toBe(true);
+        expect(regenerateBudget(caster(1, 5, true), [flight()]).affordable).toBe(true);
+    });
+
+    it('pools drain on their own and do not cost the caster', () => {
+        expect(regenerateBudget(caster(1), [inf({ label: 'crate', pool: 2 })]).affordable).toBe(true);
+    });
+
+    it('warns when it spends the last Investiture while sustained infusions are kept', () => {
+        expect(regenerateBudget(caster(2), [flight()])).toEqual({ affordable: true, endsSustained: true });
+        expect(regenerateBudget(caster(3), [flight()])).toEqual({ affordable: true, endsSustained: false });
+        expect(regenerateBudget(caster(1), [])).toEqual({ affordable: true, endsSustained: false });
+    });
+
+    it("uses the action's own cost", () => {
+        expect(regenerateBudget(caster(2), [flight()], {}, {}, 2).affordable).toBe(false);
+        expect(regenerateBudget(caster(0), [], {}, {}, 0).affordable).toBe(true);
     });
 });

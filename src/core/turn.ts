@@ -13,7 +13,7 @@ import { actorTalents, allActors, casterState, freeEnhanceUpkeep, isSquire, pref
 import { advanceTime, onInvestitureChanged, resolveTurnEnd, resolveTurnStart, type TurnDecisions } from '@/core/engine';
 import { getMapping } from '@/core/mapping';
 import { talentEffectsFor } from '@/core/modifiers';
-import { regenerateItem, useRegenerate } from '@/core/regenerate';
+import { offersRegenerate, regenerateCost, regenerateItem, useRegenerate } from '@/core/regenerate';
 import { requestRegrowth } from '@/core/sub-effects';
 import { asUser, registerHandler } from '@/core/relay';
 import { UPDATE_OPTION, commit, getInfusions } from '@/core/store';
@@ -28,7 +28,7 @@ const pending = new Map<string, number>();
 /** True when the actor has anything to resolve at the start of its turn. */
 function needsTurnStart(actor: any, prompt: boolean): boolean {
     const state = casterState(actor);
-    return getInfusions(actor).length > 0 || (!!state.empowered && state.inv < state.max) || (prompt && !!regenerateItem(actor));
+    return getInfusions(actor).length > 0 || (!!state.empowered && state.inv < state.max) || (prompt && offersRegenerate(actor));
 }
 
 /**
@@ -44,11 +44,6 @@ export function canReclaim(actor: any, inf: Infusion): boolean {
         talentEffectsFor(talent, effects).some((e) => e.type === 'reclaimable' && e.surge === inf.surge),
     );
 }
-
-const isDamaged = (actor: any): boolean => {
-    const health = actor?.system?.resources?.hea;
-    return Number(health?.value) < Number(health?.max?.value);
-};
 
 /**
  * Runs the turn-start flow for an actor on this client: prompt (optional), then add/end/reclaim and
@@ -67,7 +62,10 @@ export async function runTurnStart(actor: any, { prompt = getSetting('promptOnTu
         const infusions = getInfusions(actor);
         const asked = infusions.filter(promptsAtStart);
         const reclaim = infusions.filter((inf) => canReclaim(actor, inf));
-        const regenerate = regenerateItem(actor) ? { damaged: isDamaged(actor) } : null;
+        const round = game.combat?.started ? game.combat.round : null;
+        // Regenerate is paid after the drain; what a reclaim recovers counts toward it.
+        const budgeted = infusions.map((inf) => (reclaim.includes(inf) ? { ...inf, reclaimable: true } : inf));
+        const regenerate = offersRegenerate(actor) ? { infusions: budgeted, round, cost: regenerateCost(regenerateItem(actor)) } : null;
         let decisions: PromptResult = {};
         if (prompt && (asked.length || reclaim.length || regenerate)) {
             decisions = await TurnPrompt.ask(actor, asked, casterState(actor), 'start', { reclaim, regenerate });
@@ -76,7 +74,6 @@ export async function runTurnStart(actor: any, { prompt = getSetting('promptOnTu
         // Re-read: Investiture or infusions may have changed while the prompt was open.
         const current = getInfusions(actor);
         if (current.length || casterState(actor).empowered) {
-            const round = game.combat?.started ? game.combat.round : null;
             // Stormlight Reclamation from a talent the caster gained after creating the infusion.
             const chosen = new Set(decisions.reclaim ?? []);
             const withReclaim = current.map((inf) => (chosen.has(inf.id) && canReclaim(actor, inf) ? { ...inf, reclaimable: true } : inf));
