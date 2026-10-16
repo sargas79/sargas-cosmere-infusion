@@ -17,11 +17,11 @@ https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/mod
 ## Features
 
 - **Infusions on the sheet.** Two collapsible tables on the Effects tab, below Injuries:
-  - *Sustained Infusions*: the infusions you keep up, with target, duration (rounds left), **+** (1 Investiture, 1 more round), details and a menu (edit, reclaim, remove; drain and double drain for the GM).
-  - *Active Infusions*: the infusions on this character and who they come from, with their effects listed under them. Both tables show the same infusion, so a change or removal shows in both.
+  - *Sustained Infusions*: the infusions you keep up, named by surge with your optional description under it, with target, duration (rounds left, or *Sustained* for self infusions), **+** (1 Investiture, 1 more round), details and a menu (edit, reclaim with Stormlight Reclamation, remove). Drain and double drain are in the GM tracker.
+  - *Active Infusions*: the infusions on this character, who they come from and how long they last, with their effects listed under them. Both tables show the same infusion, so a change or removal shows in both.
 
   The token HUD sun button opens the infusion list in a window.
-- **Created when you use a surge.** Using Abrasion, Adhesion, Cohesion, Gravitation, Illumination, Progression or Tension opens a short *New infusion* window: target type, targets and Investiture. It uses the Investiture you spent, your targeted tokens and your talents; everything else can be changed later with Edit. Talents that trigger a surge (Binding Strike…) work too. Division, Transformation and Transportation are instant and don't prompt.
+- **Created when you use a surge.** Using Abrasion, Adhesion, Cohesion, Gravitation, Illumination, Progression or Tension opens a short *New infusion* window: target type, an optional description, targets (none for an area or surface: describe it instead) and Investiture. It uses the Investiture you spent, your targeted tokens and your talents; everything else can be changed later with Edit. Talents that trigger a surge (Binding Strike…) work too. Division, Transformation and Transportation are instant and don't prompt.
 - **Talents applied automatically.** Your talents set the infusion's rules, and you can override each one:
   - Extended Adhesion / Regrowth / Tension and Lingering Lightweavings: drain every N rounds.
   - Master of the Skies, Smooth Operator, Endless Illusions and Extended Tension: free while you're Invested.
@@ -41,7 +41,7 @@ https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/mod
   - Abrasion (self): *Skate* (focus cost and path follow Smooth Operator and Graceful Skating) and *Slide*; *Frictionless Motion* (Move +10 ft) with that talent.
   - Adhesion: *Restrained* with Living Adhesion.
   - Gravitation: *Basic Lashing*, Fly 25 ft (40 ft with Flying Ace).
-  - Progression: *Regrowth*. When the character is activated in combat, the healing is rolled and applied: the caster's Progression surge die (d4 at 1 rank, d6 at 2…) + Progression modifier, plus Medicine ranks with Swift Healer and Lore ranks with Applied Medicine. With Swift Regeneration, the target also adds the caster's Progression modifier to injury rolls.
+  - Progression: *Regrowth*. At the start of the character's turn, the healing is rolled on a Healing card and applied: the caster's Progression surge die (d4 at 1 rank, d6 at 2…) + Progression modifier, plus Medicine ranks with Swift Healer and Lore ranks with Applied Medicine. With Swift Regeneration, the target also adds the caster's Progression modifier to injury rolls.
   - Tension: *Hardened Defense*, Physical defense +2 (+4 with Clothsmith). Only one counts per character; extra copies stay disabled until the active one ends.
 
   Effects and formulas can be changed in *Surge and talent mapping* (`subEffects`, `formulas`).

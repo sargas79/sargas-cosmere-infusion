@@ -5,6 +5,7 @@
 import { HtmlApp } from '@/apps/base';
 import type { Infusion } from '@/data/infusion';
 import type { CasterState, TurnDecisions } from '@/core/engine';
+import { infusionDescription, infusionTitle } from '@/core/chat';
 import { esc, t } from '@/utils';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -66,9 +67,9 @@ export class TurnPrompt extends HtmlApp {
             `<label class="sci-toggle"><input type="radio" name="choice-${inf.id}" value="${choice}"${choice === 'maintain' ? ' checked' : ''}><span>${t(label)}</span></label>`;
         const rows = this.infusions
             .map((inf) => {
-                const surge = inf.kind === 'upkeep' ? '' : `<br><small>${esc(t(`SCI.Surge.${inf.surge}`))}</small>`;
+                const description = infusionDescription(inf) ? `<br><small>${esc(infusionDescription(inf))}</small>` : '';
                 return `<tr>
-                    <td class="sci-label"><strong>${esc(inf.label)}</strong>${surge}</td>
+                    <td class="sci-label"><strong>${esc(infusionTitle(inf))}</strong>${description}</td>
                     <td><div class="sci-toggles">${toggle(inf, 'maintain', 'SCI.Prompt.Maintain')}${toggle(inf, 'end', 'SCI.Prompt.End')}</div></td>
                 </tr>`;
             })

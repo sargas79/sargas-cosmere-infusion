@@ -10,6 +10,20 @@ import { esc, t } from '@/utils';
 
 const isSurge = (surge: string) => (SURGE_KEYS as readonly string[]).includes(surge);
 
+/** Whether the infusion is named by its surge (the label is then an optional description). */
+const namedBySurge = (inf: Infusion) => inf.kind !== 'upkeep' && (SURGE_KEYS as readonly string[]).includes(inf.surge);
+
+/** Main name: the surge, or the label for upkeep effects and custom infusions. */
+export function infusionTitle(inf: Infusion): string {
+    const surge = t(`SCI.Surge.${inf.surge}`);
+    return namedBySurge(inf) ? surge : inf.label || surge;
+}
+
+/** The user's optional description, shown in gray under the surge name. */
+export function infusionDescription(inf: Infusion): string {
+    return namedBySurge(inf) ? inf.label : '';
+}
+
 /** "<b>Tension</b> on <b>Selaneth</b>", or the label alone for upkeep and custom infusions. */
 export function infusionSubject(inf: Infusion, casterName: string): string {
     if (inf.kind === 'upkeep' || !isSurge(inf.surge)) return `<strong>${esc(inf.label || t(`SCI.Surge.${inf.surge}`))}</strong>`;
@@ -91,13 +105,16 @@ export function summaryLines(log: LogEntry[], infusions: Infusion[], casterName:
     });
 }
 
-export async function postSummary(actor: any, title: string, log: LogEntry[], infusions: Infusion[], inv?: number) {
+/** A card section with the system's markup, so it picks up the Skill Test header style. */
+export function cardSection(title: string, icon: string, body: string, type = ''): string {
+    return `<section class="chat-card-section ${type}"><div class="section-header"><span class="title"><i class="${icon}"></i>${esc(title)}</span></div>${body}</section>`;
+}
+
+export async function postSummary(actor: any, title: string, log: LogEntry[], infusions: Infusion[]) {
     const lines = summaryLines(log, infusions, actor.name);
     if (!lines.length) return;
-    const footer = inv == null ? '' : `<p class="sci-chat-inv">${t('SCI.Log.InvLeft', { inv })}</p>`;
-    const content = `<div class="sci-chat"><h4>${esc(title)}</h4><ul>${lines
-        .map((l) => `<li>${l}</li>`)
-        .join('')}</ul>${footer}</div>`;
+    const list = `<ul>${lines.map((l) => `<li>${l}</li>`).join('')}</ul>`;
+    const content = `<div class="chat-card sci-chat">${cardSection(title, 'fa-solid fa-bolt', list)}</div>`;
     await ChatMessage.create({
         content,
         speaker: ChatMessage.getSpeaker({ actor }),

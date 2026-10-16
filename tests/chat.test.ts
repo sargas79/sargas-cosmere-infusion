@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { normalizeInfusion } from '@/data/infusion';
 import { resolveTurnEnd, resolveTurnStart } from '@/core/engine';
-import { summaryLines } from '@/core/chat';
+import { infusionDescription, infusionTitle, summaryLines } from '@/core/chat';
 
 const lang = JSON.parse(readFileSync(join(__dirname, '..', 'lang', 'en.json'), 'utf8'));
 const lookup = (key: string): string => key.split('.').reduce((node, part) => node?.[part], lang) ?? key;
@@ -42,5 +42,20 @@ describe('summaryLines', () => {
         expect(summaryLines(resolveTurnStart({ inv: 3, max: 5 }, [lash]).log, [lash], 'Kal')).toEqual([
             '<strong>Gravitation</strong> on <strong>Kal</strong>: 1 from the caster.',
         ]);
+    });
+});
+
+describe('infusion names (#41)', () => {
+    it('uses the surge as the name and the label as an optional description', () => {
+        const lashed = normalizeInfusion({ surge: 'grv', kind: 'object', label: 'the crate by the door' });
+        expect(infusionTitle(lashed)).toBe('Gravitation');
+        expect(infusionDescription(lashed)).toBe('the crate by the door');
+        expect(infusionDescription(normalizeInfusion({ surge: 'grv', kind: 'object' }))).toBe('');
+    });
+
+    it('keeps the label as the name for upkeep effects', () => {
+        const enhance = normalizeInfusion({ surge: 'upkeep', kind: 'upkeep', label: 'Enhance' });
+        expect(infusionTitle(enhance)).toBe('Enhance');
+        expect(infusionDescription(enhance)).toBe('');
     });
 });

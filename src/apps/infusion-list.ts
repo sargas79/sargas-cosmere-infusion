@@ -4,6 +4,7 @@
 import { drawsFromCaster, type Infusion } from '@/data/infusion';
 import { InfusionDialog } from '@/apps/infusion-dialog';
 import { casterState } from '@/core/actor-data';
+import { infusionDescription, infusionTitle } from '@/core/chat';
 import { addInvestiture, damageInfusion, drainExternal, endInfusion } from '@/core/engine';
 import { commit, getInfusions, updateInfusion } from '@/core/store';
 import { esc, t } from '@/utils';
@@ -48,7 +49,7 @@ export function renderInfusionRows(actor: any, infusions: Infusion[], opts: List
             ].join('');
             return `<li class="sci-row" data-id="${inf.id}">
                 ${amount}
-                <div class="sci-main"><strong>${esc(inf.label)}</strong> <small class="sci-surge">${esc(t(`SCI.Surge.${inf.surge}`))}</small> ${badge(inf)}<br>${targets} ${health}</div>
+                <div class="sci-main"><strong>${esc(infusionTitle(inf))}</strong> ${infusionDescription(inf) ? `<small class="sci-surge">${esc(infusionDescription(inf))}</small>` : ''} ${badge(inf)}<br>${targets} ${health}</div>
                 <div class="sci-controls">${buttons}</div>
             </li>`;
         })
@@ -101,7 +102,7 @@ export async function runListAction(action: string, actor: any, id: string): Pro
         case 'end': {
             const ok = await foundry.applications.api.DialogV2.confirm({
                 window: { title: t('SCI.List.End') },
-                content: `<p>${t('SCI.List.EndConfirm', { label: esc(inf.label) })}</p>`,
+                content: `<p>${t('SCI.List.EndConfirm', { label: esc(infusionTitle(inf)) })}</p>`,
                 rejectClose: false,
             });
             if (ok) await commit(actor, endInfusion(state, getInfusions(actor), id), { chat: t('SCI.Chat.Changed') });

@@ -51,7 +51,7 @@ export async function commit(actor: any, result: Pick<EngineResult, 'inv' | 'inf
     await syncMarkers(actor, before, result.infusions);
     await syncSubEffects(actor, before, result.infusions);
     await endUpkeepSideEffects(actor, result.ended ?? []);
-    if (options.chat) await postSummary(actor, options.chat, result.log, [...before, ...result.infusions], result.inv);
+    if (options.chat) await postSummary(actor, options.chat, result.log, [...before, ...result.infusions]);
     Hooks.callAll(MODULE_HOOKS.changed, actor, result.infusions);
 }
 
