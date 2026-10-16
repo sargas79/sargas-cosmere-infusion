@@ -62,13 +62,13 @@
       "freeHint": "Outside scenes one round is about 10 minutes: advancing world time drains infusions automatically."
     },
     "EndReason": {
-      "manual": "Ended",
-      "pool-empty": "Out of Investiture",
-      "non-invested": "The caster is no longer Invested",
-      "reclaimed": "Reclaimed",
-      "upkeep-declined": "Not maintained",
-      "health": "Reduced to 0 health",
-      "external": "Drained"
+      "manual": "ended",
+      "pool-empty": "out of Investiture",
+      "non-invested": "caster no longer Invested",
+      "reclaimed": "reclaimed",
+      "upkeep-declined": "not maintained",
+      "health": "reduced to 0 health",
+      "external": "drained away"
     },
     "Field": {
       "Surge": "Surge",
@@ -76,6 +76,7 @@
       "Kind": "Target type",
       "Targets": "Targets",
       "Pool": "Investiture infused",
+      "Sustained": "Sustained",
       "Source": "Paid from",
       "Cadence": "Drains",
       "EveryNRounds": "Drain every N rounds",
@@ -106,7 +107,8 @@
       "UseTargets": "Use targeted tokens",
       "AddTextTarget": "Add text target",
       "ChargeHint": "{charge} more Investiture will be taken from the caster (current: {inv}).",
-      "SelfHint": "Self infusions draw from the caster's Investiture every round until ended.",
+      "SustainedHint": "Sustained: the caster pays for it from their Investiture at the start of each turn, or ends it.",
+      "SustainedChargeHint": "Sustained: {charge} Investiture will be taken from the caster now (current: {inv}), then 1 each turn it is maintained.",
       "UpkeepHint": "Upkeep effects cost 1 Investiture at the start of each turn or end.",
       "Options": "Options",
       "Drain": "Drain",
@@ -126,7 +128,7 @@
     "Prompt": {
       "Title": "Start of turn",
       "TitleFor": "Start of turn: {name}",
-      "Intro": "Investiture: {inv}/{max}. Maintain or end each effect.",
+      "Intro": "Investiture: {inv}/{max}. Choose what to keep up this turn.",
       "Empowered": "Empowered: Investiture refills to maximum before the drain.",
       "Infusion": "Infusion",
       "End": "End",
@@ -134,7 +136,15 @@
       "Continue": "Continue",
       "EndTitleFor": "End of turn: {name}",
       "Actions": "Actions",
-      "Maintain": "Maintain"
+      "Maintain": "Maintain",
+      "Cost": "costs {cost}",
+      "PoolLeft": "{pool} left",
+      "Keep": "Keep",
+      "Reclaim": "Reclaim",
+      "Regenerate": "Regenerate",
+      "Use": "Use",
+      "DontUse": "Do not use",
+      "NoInvestiture": "No Investiture"
     },
     "List": {
       "Empty": "No active infusions.",
@@ -209,30 +219,24 @@
       "Description": "Infused by {caster} ({surge})."
     },
     "Chat": {
-      "TurnStart": "Upkeep",
-      "TimePassed": "Time passes: infusions",
-      "NonInvested": "No Investiture left",
-      "Changed": "Infusion changed",
-      "DrainedExternal": "Infusion drained",
-      "SceneEnd": "End of scene",
+      "Triggers": "Triggers",
       "Highstorm": "A highstorm passes: spheres are infused again.",
       "CreateInfusion": "Create infusion",
       "Regrowth": "Regrowth · {caster}"
     },
     "Log": {
-      "Refilled": "Empowered: recovered {amount} Investiture.",
+      "Empowered": "Empowered",
+      "Refilled": "Recovered {amount}",
       "On": "{surge} on {target}",
-      "Added": "added {amount}",
-      "Drained": "drained {amount}, {remaining} left",
-      "DrainedCaster": "{amount} from the caster",
-      "Free": "no drain (free while Invested)",
-      "Waiting": "drains in {rounds} round(s)",
-      "Reclaimed": "reclaimed {amount}",
-      "MultiplierReset": "drain back to normal",
+      "Added": "Added {amount}",
+      "Drained": "Drained {amount} · {remaining} left",
+      "Free": "Free while Invested",
+      "Waiting": "Drains in {rounds} round(s)",
+      "Reclaimed": "Reclaimed {amount}",
+      "MultiplierReset": "Drain back to normal",
       "Maintained": "Maintained",
-      "UpkeepEnded": "Ended",
-      "EndedPlain": "Ended.",
-      "EndedReason": "Ended. {reason}."
+      "Ended": "Ended",
+      "EndedReason": "Ended: {reason}"
     },
     "Notify": {
       "NoTargets": "No tokens targeted.",
@@ -243,6 +247,7 @@
       "NotEnoughSpheres": "{name} recovered only {recovered} of {missing} Investiture: not enough infused marks or broams.",
       "Highstorm": "Highstorm: {count} spheres infused.",
       "NoGMForCommit": "No GM is connected: this change can't be applied to an actor you don't own.",
+      "RegenerateFailed": "Regenerate couldn't be used. Use it from the character sheet.",
       "RegrowthFailed": "Regrowth: the healing formula \"{formula}\" couldn't be rolled. Check it in Surge and talent mapping."
     },
     "Settings": {

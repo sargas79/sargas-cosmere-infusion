@@ -12,7 +12,8 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 - [ ] The Investiture field is narrow, with up/down arrows next to it.
 - [ ] Target type *Area or surface*: no Targets box, and the Description hint asks to describe the area.
 - [ ] Raise the pool to 4: the window says 1 more will be charged, and creating it reduces Investiture by 1.
-- [ ] A Gravitation self Lashing has no pool. Creating it doesn't charge anything.
+- [ ] A Gravitation self Lashing shows *Sustained* (checked) above a disabled *Investiture infused* field. Created from a Gravitation use it charges nothing more; created from the sheet it charges 1. Its duration reads *Sustained*.
+- [ ] Unchecking *Sustained* enables the Investiture field; the infusion then has a pool, shows rounds left and a **+** button, and drains the pool instead of the caster.
 - [ ] Use Division / Transformation / Transportation: no window opens.
 - [ ] Binding Strike only opens one window (from the triggered Adhesion use).
 - [ ] Use Enhance: an upkeep entry is created without a window. Using it again doesn't add a second one.
@@ -29,10 +30,10 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 ## Sheet (Effects tab)
 - [ ] *Sustained Infusions* sits below Injuries, collapses from its header, and stays collapsed after the sheet re-renders.
 - [ ] Each row shows the art, the target (portrait with a yellow border for characters) and "N rounds".
-- [ ] **+** takes 1 Investiture and adds 1 round, with no window. Hidden for self and upkeep infusions.
+- [ ] **+** takes 1 Investiture and adds 1 round, with no window. Hidden for sustained and upkeep infusions.
 - [ ] View details expands the row. The menu has Edit and Remove (plus Reclaim / Damage when they apply; no Drain or double drain).
 - [ ] Rows show the surge name, with the description in gray under it; without a description the name is centered.
-- [ ] Active Infusions has a Duration column between Source and the actions. Self infusions show *Sustained* in both tables.
+- [ ] Active Infusions has a Duration column between Source and the actions. Sustained infusions show *Sustained* in both tables.
 - [ ] A target's sheet shows the infusion under *Active Infusions* with the caster as Source; removing it there removes it from the caster's Sustained list too, and the other way round.
 - [ ] A player who doesn't own the caster sees no menu on the target's Active Infusions row.
 
@@ -46,13 +47,16 @@ Use a **test world** (not a live game) on Foundry v13 with cosmere-rpg 3.1.x. Us
 ## Start of turn (combat)
 - [ ] The player activates their slow turn: the window opens on the **player's** client, and only once.
 - [ ] The GM activates the player's combatant: the window still opens on the player's client.
-- [ ] The window lists only self infusions and upkeep effects, each with Maintain / End toggles (only one can be selected). Infusions on others drain without a window.
-- [ ] No self infusion or upkeep: no window, the drain still happens.
-- [ ] Closing the window maintains everything and still drains.
-- [ ] Chat: an "UPKEEP" card (bolt icon, Skill Test header style, no Investiture line) with lines like **Tension** on **Selaneth**: drained 1, 3 left, and "Ended. Out of Investiture." nested under the infusion.
+- [ ] The window lists sustained infusions and upkeep effects, each with Maintain / End toggles (only one can be selected). Infusions with a pool drain without a window.
+- [ ] With Investiture 0 (and not Empowered), Maintain is disabled and End is selected for anything that costs Investiture this turn.
+- [ ] With Stormlight Reclamation for the surge, infusions with a pool are listed with Keep / Reclaim. Reclaim ends the infusion after the drain and returns the rest of the pool (capped at max).
+- [ ] A character with the Regenerate action gets a Regenerate row (Use / Do not use). Unhurt: *Do not use* is selected. Hurt: *Use* is selected; continuing uses Regenerate (its Investiture is spent, its card posted) and heals the rolled amount. No Investiture: Use is disabled.
+- [ ] Nothing to ask (no sustained infusion, upkeep, reclaimable infusion or Regenerate): no window, the drain still happens.
+- [ ] Closing the window keeps the defaults and still drains.
+- [ ] Chat: a "TRIGGERS" card (bolt icon, Skill Test header style). Each row has the infusion art, **Tension** on **Selaneth**, and a small gray update: *Drained 1 · 3 left*, *Maintained*, *Reclaimed 2*, *Ended: out of Investiture*, *Ended*.
 - [ ] Pool 1 → the infusion ends, its marker disappears, and the chat says "out of Investiture".
-- [ ] Self infusion with Investiture 1 → it drains to 0 and ends (non-Invested).
-- [ ] Spending Investiture down to 0 elsewhere ends self infusions immediately.
+- [ ] Sustained infusion with Investiture 1 → it drains to 0 and ends (non-Invested).
+- [ ] Spending Investiture down to 0 elsewhere ends sustained infusions immediately; self infusions with a pool keep running.
 - [ ] Unconscious caster: infusions still drain.
 - [ ] Boss with fast + slow turns: drains once per round by default, twice with "both turns".
 - [ ] Empowered (status): Investiture refills to max before the drain.

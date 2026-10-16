@@ -10,6 +10,7 @@ import {
     durationLeft,
     resolveTurnEnd,
     resolveTurnStart,
+    upkeepCost,
 } from '@/core/engine';
 
 const inf = (data: InfusionInit) => normalizeInfusion({ id: data.label, ...data });
@@ -253,5 +254,29 @@ describe('durationLeft', () => {
     it('uses the caster for self infusions and is unlimited when free', () => {
         expect(durationLeft(inf({ label: 'd', kind: 'self' }), 4)).toBe(4);
         expect(durationLeft(inf({ label: 'e', kind: 'self', freeWhileInvested: true }), 4)).toBeNull();
+    });
+});
+
+describe('sustained infusions (#49)', () => {
+    it('self infusions saved without the flag are sustained; new ones can use a pool', () => {
+        expect(inf({ label: 'old', kind: 'self' }).sustained).toBe(true);
+        const pooled = inf({ label: 'pooled', kind: 'self', sustained: false, pool: 3 });
+        expect(pooled.sustained).toBe(false);
+        expect(pooled.pool).toBe(3);
+        expect(inf({ label: 'crate', sustained: true, pool: 2 }).sustained).toBe(false);
+    });
+
+    it('a self infusion with a pool drains its pool, not the caster, and survives 0 Investiture', () => {
+        const r = resolveTurnStart(caster(0), [inf({ label: 'pooled', kind: 'self', sustained: false, pool: 2 })]);
+        expect(r.inv).toBe(0);
+        expect(r.infusions[0].pool).toBe(1);
+    });
+
+    it('upkeepCost is what the caster pays at this drain', () => {
+        expect(upkeepCost(inf({ label: 's', kind: 'self' }), 3)).toBe(1);
+        expect(upkeepCost(inf({ label: 's', kind: 'self', drain: { multiplier: 2 } }), 3)).toBe(2);
+        expect(upkeepCost(inf({ label: 's', kind: 'self', freeWhileInvested: true }), 3)).toBe(0);
+        expect(upkeepCost(inf({ label: 's', kind: 'self', drain: { everyNRounds: 3, counter: 0 } }), 3)).toBe(0);
+        expect(upkeepCost(inf({ label: 'crate', pool: 3 }), 3)).toBe(0);
     });
 });

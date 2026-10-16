@@ -54,7 +54,7 @@ function entity(name: string, img?: string | null): string {
 }
 
 function targetCell(caster: any, inf: Infusion): string {
-    if (drawsFromCaster(inf)) return entity(caster.name, caster.img);
+    if (inf.kind === 'self' || inf.kind === 'upkeep') return entity(caster.name, caster.img);
     if (!inf.targets.length) return `<span class="none">—</span>`;
     return inf.targets
         .map((tg) => {

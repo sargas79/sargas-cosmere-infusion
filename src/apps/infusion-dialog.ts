@@ -73,6 +73,8 @@ export class InfusionDialog extends HtmlApp {
         kind: InfusionKind;
         targets: InfusionTarget[];
         pool: number;
+        /** Self infusions: paid from the caster each turn instead of a pool. */
+        sustained: boolean;
         alreadyPaid: number;
         source: 'caster' | 'gem';
         light: Light;
@@ -110,6 +112,7 @@ export class InfusionDialog extends HtmlApp {
             kind: editing?.kind ?? init.kind ?? preset?.defaultKind ?? 'object',
             targets: editing?.targets ?? init.targets ?? [],
             pool: editing?.pool ?? Math.max(1, init.pool ?? 1),
+            sustained: editing?.sustained ?? true,
             alreadyPaid: editing ? 0 : Math.max(0, init.alreadyPaid ?? 0),
             source: editing?.source ?? init.source ?? 'caster',
             light: editing?.light ?? 'stormlight',
@@ -210,9 +213,9 @@ export class InfusionDialog extends HtmlApp {
         ];
         const preset = isSurgeKey(s.surge) ? SURGE_PRESETS[s.surge] : null;
         const kinds = preset?.kinds ?? ALL_KINDS;
-        const usesPool = !drawsFromCaster({ kind: s.kind });
-        // Areas and surfaces are described in the description field instead of picking targets.
-        const hasTargets = usesPool && s.kind !== 'area';
+        const usesPool = !drawsFromCaster(s);
+        // Areas and surfaces are described in the description field instead of picking targets; self infusions target the caster.
+        const hasTargets = usesPool && s.kind !== 'area' && s.kind !== 'self';
         const scaling = isSurgeKey(s.surge) ? surgeScaling(ranks[s.surge] ?? 0) : null;
 
         const rows: string[] = [];
@@ -288,14 +291,23 @@ export class InfusionDialog extends HtmlApp {
             </fieldset>`
                     : ''
             }
+            ${s.kind === 'self' ? this.checkbox('sustained', 'SCI.Field.Sustained', s.sustained) : ''}
+            ${
+                usesPool || s.kind === 'self'
+                    ? `<div class="form-group sci-pool-group${usesPool ? '' : ' sci-disabled'}"><label>${t('SCI.Field.Pool')}</label>
+                <span class="sci-stepper"><input type="number" name="pool" min="1" value="${s.pool}"${usesPool ? '' : ' disabled'}>${
+                    usesPool
+                        ? `<span class="sci-stepper-buttons">
+                    <a data-sci-action="poolStep" data-step="1" title="${esc(t('SCI.Dialog.PoolUp'))}"><i class="fa-solid fa-caret-up"></i></a>
+                    <a data-sci-action="poolStep" data-step="-1" title="${esc(t('SCI.Dialog.PoolDown'))}"><i class="fa-solid fa-caret-down"></i></a></span>`
+                        : ''
+                }</span>
+                ${this.editing ? `<p class="hint">${t(usesPool ? 'SCI.Dialog.EditPoolHint' : 'SCI.Dialog.SustainedHint')}</p>` : `<p class="hint sci-charge">${this.chargeText()}</p>`}</div>`
+                    : ''
+            }
             ${
                 usesPool
-                    ? `<div class="form-group sci-pool-group"><label>${t('SCI.Field.Pool')}</label>
-                <span class="sci-stepper"><input type="number" name="pool" min="1" value="${s.pool}"><span class="sci-stepper-buttons">
-                    <a data-sci-action="poolStep" data-step="1" title="${esc(t('SCI.Dialog.PoolUp'))}"><i class="fa-solid fa-caret-up"></i></a>
-                    <a data-sci-action="poolStep" data-step="-1" title="${esc(t('SCI.Dialog.PoolDown'))}"><i class="fa-solid fa-caret-down"></i></a></span></span>
-                ${this.editing ? `<p class="hint">${t('SCI.Dialog.EditPoolHint')}</p>` : `<p class="hint sci-charge">${this.chargeText()}</p>`}</div>
-            <div class="form-group"><label>${t('SCI.Field.Source')}</label>
+                    ? `<div class="form-group"><label>${t('SCI.Field.Source')}</label>
                 <select name="source">${options(
                     [
                         ['caster', t('SCI.Source.caster')],
@@ -303,7 +315,9 @@ export class InfusionDialog extends HtmlApp {
                     ],
                     s.source,
                 )}</select></div>`
-                    : `<p class="hint">${t(s.kind === 'upkeep' ? 'SCI.Dialog.UpkeepHint' : 'SCI.Dialog.SelfHint')}</p>`
+                    : s.kind === 'upkeep'
+                      ? `<p class="hint">${t('SCI.Dialog.UpkeepHint')}</p>`
+                      : ''
             }
             ${optionRows.length ? `<fieldset><legend>${t('SCI.Dialog.Options')}</legend>${optionRows.join('')}</fieldset>` : ''}
             ${this.editing ? this.drainFields(usesPool) : ''}
@@ -353,6 +367,7 @@ export class InfusionDialog extends HtmlApp {
         if ('pool' in f) s.pool = Math.max(1, intValue(f.pool, s.pool));
         if ('alreadyPaid' in f) s.alreadyPaid = Math.max(0, intValue(f.alreadyPaid, s.alreadyPaid));
         if ('source' in f) s.source = f.source === 'gem' ? 'gem' : 'caster';
+        if ('sustained' in f) s.sustained = !!f.sustained;
         s.light = (f.light as Light) ?? s.light;
         s.cadence = (f.cadence as Cadence) ?? s.cadence;
         if ('simpleIllusion' in f && changed === 'simpleIllusion') s.cadence = f.simpleIllusion ? '10min' : 'round';
@@ -384,6 +399,7 @@ export class InfusionDialog extends HtmlApp {
         'surge',
         'kind',
         'source',
+        'sustained',
         'simpleIllusion',
         'heldOrWorn',
         'storedInGem',
@@ -402,13 +418,21 @@ export class InfusionDialog extends HtmlApp {
         if (hint) hint.textContent = this.chargeText();
     }
 
+    /**
+     * Investiture taken from the caster on creation, on top of what the system already charged. A sustained
+     * infusion spends its first round's Investiture now; the upkeep window charges the following ones.
+     */
     private charge(): number {
         const s = this.draft;
-        return !drawsFromCaster({ kind: s.kind }) && s.source === 'caster' && !this.editing ? Math.max(0, s.pool - s.alreadyPaid) : 0;
+        if (this.editing) return 0;
+        if (s.kind === 'self' && s.sustained) return Math.max(0, 1 - s.alreadyPaid);
+        return !drawsFromCaster(s) && s.source === 'caster' ? Math.max(0, s.pool - s.alreadyPaid) : 0;
     }
 
     private chargeText(): string {
-        return t('SCI.Dialog.ChargeHint', { charge: this.charge(), inv: casterState(this.actor).inv });
+        const s = this.draft;
+        const key = s.kind === 'self' && s.sustained ? 'SCI.Dialog.SustainedChargeHint' : 'SCI.Dialog.ChargeHint';
+        return t(key, { charge: this.charge(), inv: casterState(this.actor).inv });
     }
 
     protected async onAction(action: string, target: HTMLElement) {
@@ -448,7 +472,7 @@ export class InfusionDialog extends HtmlApp {
 
     private async save() {
         const s = this.draft;
-        const usesPool = !drawsFromCaster({ kind: s.kind });
+        const usesPool = !drawsFromCaster(s);
         const charge = this.charge();
         if (charge > casterState(this.actor).inv) {
             ui.notifications.warn('SCI.Notify.NotEnoughInvestiture', { localize: true });
@@ -459,9 +483,10 @@ export class InfusionDialog extends HtmlApp {
             surge: s.surge,
             label: s.label.trim(),
             kind: s.kind,
-            targets: usesPool && s.kind !== 'area' ? s.targets : [],
+            targets: usesPool && s.kind !== 'area' && s.kind !== 'self' ? s.targets : [],
             pool: s.pool,
-            source: s.source,
+            sustained: s.sustained,
+            source: usesPool ? s.source : 'caster',
             light: s.light,
             drain: { ...(this.editing?.drain ?? {}), cadence: s.cadence, everyNRounds: s.everyNRounds },
             freeWhileInvested: s.freeWhileInvested,

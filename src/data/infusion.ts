@@ -16,7 +16,8 @@ export type InfusionSurge = SurgeKey | OtherSource;
 
 /**
  * - `object` / `character` / `area`: Investiture is infused into the target and drains from the infusion's pool.
- * - `self`: no pool; drains from the caster's current Investiture each round.
+ * - `self`: the caster infuses themselves. Either with a pool, like an object, or `sustained`: no pool, the
+ *   caster pays the drain from their current Investiture each round.
  * - `upkeep`: explicit-upkeep effect (Enhance, Tunneling, Gravitational Support): pay 1 at turn start or it ends.
  */
 export const INFUSION_KINDS = ['object', 'character', 'area', 'self', 'upkeep'] as const;
@@ -69,8 +70,13 @@ export interface Infusion {
     label: string;
     kind: InfusionKind;
     targets: InfusionTarget[];
-    /** Investiture held by the infusion. Unused for `self` and `upkeep`. */
+    /** Investiture held by the infusion. Unused for sustained infusions and `upkeep`. */
     pool: number;
+    /**
+     * Self infusions only: kept up from the caster's own Investiture each turn (Maintain or End at the
+     * start of the turn) instead of a pool.
+     */
+    sustained: boolean;
     drain: DrainSettings;
     timing: UpkeepTiming;
     light: Light;
@@ -116,8 +122,8 @@ export function makeId(): string {
 }
 
 /** True when the infusion consumes the caster's own Investiture instead of a pool. */
-export const drawsFromCaster = (inf: Pick<Infusion, 'kind'>): boolean =>
-    inf.kind === 'self' || inf.kind === 'upkeep';
+export const drawsFromCaster = (inf: { kind: InfusionKind; sustained?: boolean }): boolean =>
+    inf.kind === 'upkeep' || (inf.kind === 'self' && !!inf.sustained);
 
 /**
  * Builds a complete, valid infusion from partial data. Unknown or invalid values fall back to defaults,
@@ -125,6 +131,8 @@ export const drawsFromCaster = (inf: Pick<Infusion, 'kind'>): boolean =>
  */
 export function normalizeInfusion(data: InfusionInit): Infusion {
     const kind = oneOf(data.kind, INFUSION_KINDS, 'object');
+    // Self infusions saved before pools were allowed on them have no flag: they were sustained.
+    const sustained = kind === 'self' && data.sustained !== false;
     const health =
         data.health && typeof data.health === 'object'
             ? {
@@ -148,7 +156,8 @@ export function normalizeInfusion(data: InfusionInit): Infusion {
                       ...(typeof t.img === 'string' ? { img: t.img } : {}),
                   }))
             : [],
-        pool: drawsFromCaster({ kind }) ? 0 : clampInt(data.pool, 0, 1),
+        pool: drawsFromCaster({ kind, sustained }) ? 0 : clampInt(data.pool, 0, 1),
+        sustained,
         drain: {
             amount: clampInt(data.drain?.amount, 0, 1),
             everyNRounds: clampInt(data.drain?.everyNRounds, 1, 1),

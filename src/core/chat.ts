@@ -1,8 +1,8 @@
-/** Compact chat summaries of what happened to an actor's infusions, one line per infusion. */
-import { MODULE_ID } from '@/constants';
-import { SURGE_KEYS, type Infusion } from '@/data/infusion';
+/** The Triggers chat card: what happened to an actor's infusions, one row per infusion. */
+import { MARKER_ICON, MODULE_ID } from '@/constants';
+import { SURGE_KEYS, drawsFromCaster, type Infusion } from '@/data/infusion';
 import type { LogEntry } from '@/core/engine';
-import { whisperRecipients } from '@/core/actor-data';
+import { infusionIcon, whisperRecipients } from '@/core/actor-data';
 import { getSetting } from '@/settings';
 import { esc, t } from '@/utils';
 
@@ -39,23 +39,28 @@ export function infusionSubject(inf: Infusion, casterName: string): string {
     return on ? t('SCI.Log.On', { surge: bold(surge), target: bold(on) }) : bold(surge);
 }
 
-interface Group {
+/** One row of the Triggers card: who it is about, and what happened in a few words. */
+export interface SummaryRow {
+    /** Infusion id, or null for caster-wide lines (Empowered). */
+    id: string | null;
+    /** HTML: "<b>Tension</b> on <b>Selaneth</b>". */
     subject: string;
-    details: string[];
-    sub: string[];
+    /** Plain text: "Drained 1 · 2 left". */
+    update: string;
 }
 
-function detail(entry: Exclude<LogEntry, { type: 'refilled' | 'ended' }>, upkeep: boolean): string {
+/** Infusions the caster pays for each turn: they are Maintained rather than drained. */
+const paidByCaster = (inf: Infusion | undefined) => !!inf && drawsFromCaster(inf);
+
+function detail(entry: Exclude<LogEntry, { type: 'refilled' | 'ended' }>, maintained: boolean): string {
     switch (entry.type) {
         case 'added':
             return t('SCI.Log.Added', { amount: entry.amount });
         case 'drained':
-            if (upkeep) return t('SCI.Log.Maintained');
-            return entry.fromCaster
-                ? t('SCI.Log.DrainedCaster', { amount: entry.amount })
-                : t('SCI.Log.Drained', { amount: entry.amount, remaining: entry.remaining ?? 0 });
+            if (maintained || entry.fromCaster) return t('SCI.Log.Maintained');
+            return t('SCI.Log.Drained', { amount: entry.amount, remaining: entry.remaining ?? 0 });
         case 'free':
-            return t(upkeep ? 'SCI.Log.Maintained' : 'SCI.Log.Free');
+            return t(maintained ? 'SCI.Log.Maintained' : 'SCI.Log.Free');
         case 'waiting':
             return t('SCI.Log.Waiting', { rounds: entry.roundsLeft });
         case 'reclaimed':
@@ -65,44 +70,49 @@ function detail(entry: Exclude<LogEntry, { type: 'refilled' | 'ended' }>, upkeep
     }
 }
 
-/** Builds the summary list items. `infusions` must contain every infusion the log mentions. */
-export function summaryLines(log: LogEntry[], infusions: Infusion[], casterName: string): string[] {
+/** The end of an infusion replaces what happened before it: "Ended: out of Investiture", "Reclaimed 2". */
+function endText(entry: Extract<LogEntry, { type: 'ended' }>, reclaimed: string | null): string {
+    if (entry.reason === 'reclaimed' && reclaimed) return reclaimed;
+    if (entry.reason === 'manual' || entry.reason === 'upkeep-declined') return t('SCI.Log.Ended');
+    return t('SCI.Log.EndedReason', { reason: t(`SCI.EndReason.${entry.reason}`) });
+}
+
+interface Group {
+    row: SummaryRow;
+    details: string[];
+    reclaimed: string | null;
+    ended: string | null;
+}
+
+/** One row per infusion the log mentions. `infusions` must contain every infusion the log mentions. */
+export function summaryRows(log: LogEntry[], infusions: Infusion[], casterName: string): SummaryRow[] {
     const byId = new Map(infusions.map((i) => [i.id, i]));
-    const lines: (string | Group)[] = [];
     const groups = new Map<string, Group>();
+    const order: Group[] = [];
+    const group = (id: string | null, subject: string): Group => {
+        const g: Group = { row: { id, subject, update: '' }, details: [], reclaimed: null, ended: null };
+        order.push(g);
+        if (id) groups.set(id, g);
+        return g;
+    };
 
     for (const entry of log) {
         if (entry.type === 'refilled') {
-            lines.push(t('SCI.Log.Refilled', { amount: entry.amount }));
+            group(null, `<strong>${esc(t('SCI.Log.Empowered'))}</strong>`).details.push(t('SCI.Log.Refilled', { amount: entry.amount }));
             continue;
         }
         const inf = byId.get(entry.id);
-        const upkeep = inf?.kind === 'upkeep';
-        let group = groups.get(entry.id);
-        if (!group) {
-            group = { subject: inf ? infusionSubject(inf, casterName) : `<strong>${esc(entry.label)}</strong>`, details: [], sub: [] };
-            groups.set(entry.id, group);
-            lines.push(group);
-        }
-        if (entry.type !== 'ended') {
-            const text = detail(entry, upkeep);
-            if (!group.details.includes(text)) group.details.push(text);
+        const g = groups.get(entry.id) ?? group(entry.id, inf ? infusionSubject(inf, casterName) : `<strong>${esc(entry.label)}</strong>`);
+        if (entry.type === 'ended') {
+            g.ended = endText(entry, g.reclaimed);
             continue;
         }
-        const quiet = entry.reason === 'manual' || entry.reason === 'upkeep-declined';
-        if (upkeep) {
-            group.details = [t('SCI.Log.UpkeepEnded')];
-            if (!quiet) group.sub.push(t('SCI.Log.EndedReason', { reason: t(`SCI.EndReason.${entry.reason}`) }));
-        } else {
-            group.sub.push(entry.reason === 'manual' ? t('SCI.Log.EndedPlain') : t('SCI.Log.EndedReason', { reason: t(`SCI.EndReason.${entry.reason}`) }));
-        }
+        const text = detail(entry, paidByCaster(inf));
+        if (entry.type === 'reclaimed') g.reclaimed = text;
+        if (!g.details.includes(text)) g.details.push(text);
     }
 
-    return lines.map((line) => {
-        if (typeof line === 'string') return line;
-        const main = line.details.length ? `${line.subject}: ${line.details.join('; ')}.` : line.subject;
-        return line.sub.length ? `${main}<ul>${line.sub.map((s) => `<li>${s}</li>`).join('')}</ul>` : main;
-    });
+    return order.map((g) => ({ ...g.row, update: g.ended ?? g.details.join(' · ') }));
 }
 
 /** A card section with the system's markup, so it picks up the Skill Test header style. */
@@ -110,11 +120,27 @@ export function cardSection(title: string, icon: string, body: string): string {
     return `<section class="chat-card-section"><div class="section-header"><span class="title"><i class="${icon}"></i>${esc(title)}</span></div>${body}</section>`;
 }
 
-export async function postSummary(actor: any, title: string, log: LogEntry[], infusions: Infusion[]) {
-    const lines = summaryLines(log, infusions, actor.name);
-    if (!lines.length) return;
-    const list = `<ul>${lines.map((l) => `<li>${l}</li>`).join('')}</ul>`;
-    const content = `<div class="chat-card sci-chat">${cardSection(title, 'fa-solid fa-bolt', list)}</div>`;
+/** The Triggers card: one row per infusion with its art, "Surge on target" and a short update in gray. */
+export function summaryCard(rows: SummaryRow[], icon: (id: string | null) => string): string {
+    const items = rows
+        .map(
+            (row) => `<li class="sci-trigger"><img src="${esc(icon(row.id))}" alt="">
+            <div class="sci-trigger-text"><span class="sci-trigger-subject">${row.subject}</span>${
+                row.update ? `<span class="sci-trigger-update">${esc(row.update)}</span>` : ''
+            }</div></li>`,
+        )
+        .join('');
+    return `<div class="chat-card sci-chat">${cardSection(t('SCI.Chat.Triggers'), 'fa-solid fa-bolt', `<ul class="sci-triggers">${items}</ul>`)}</div>`;
+}
+
+export async function postSummary(actor: any, log: LogEntry[], infusions: Infusion[]) {
+    const rows = summaryRows(log, infusions, actor.name);
+    if (!rows.length) return;
+    const byId = new Map(infusions.map((i) => [i.id, i]));
+    const content = summaryCard(rows, (id) => {
+        const inf = id ? byId.get(id) : undefined;
+        return inf ? infusionIcon(actor, inf) : actor.img || MARKER_ICON;
+    });
     await ChatMessage.create({
         content,
         speaker: ChatMessage.getSpeaker({ actor }),

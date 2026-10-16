@@ -7,14 +7,17 @@
  * player who owns the actor, otherwise the GM. Exactly one client runs it, so the drain happens once.
  */
 import { MODULE_HOOKS, SYSTEM_ID } from '@/constants';
-import { TurnPrompt, forceContinueAll, promptsAtStart } from '@/apps/turn-prompt';
-import { allActors, casterState, freeEnhanceUpkeep, preferredRunner } from '@/core/actor-data';
+import { TurnPrompt, forceContinueAll, promptsAtStart, type PromptResult } from '@/apps/turn-prompt';
+import { drawsFromCaster, type Infusion } from '@/data/infusion';
+import { actorTalents, allActors, casterState, freeEnhanceUpkeep, isSquire, preferredRunner } from '@/core/actor-data';
 import { advanceTime, onInvestitureChanged, resolveTurnEnd, resolveTurnStart, type TurnDecisions } from '@/core/engine';
+import { getMapping } from '@/core/mapping';
+import { talentEffectsFor } from '@/core/modifiers';
+import { regenerateItem, useRegenerate } from '@/core/regenerate';
 import { requestRegrowth } from '@/core/sub-effects';
 import { asUser, registerHandler } from '@/core/relay';
 import { UPDATE_OPTION, commit, getInfusions } from '@/core/store';
 import { getSetting } from '@/settings';
-import { t } from '@/utils';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -23,14 +26,33 @@ const running = new Set<string>();
 const pending = new Map<string, number>();
 
 /** True when the actor has anything to resolve at the start of its turn. */
-function needsTurnStart(actor: any): boolean {
+function needsTurnStart(actor: any, prompt: boolean): boolean {
     const state = casterState(actor);
-    return getInfusions(actor).length > 0 || (!!state.empowered && state.inv < state.max);
+    return getInfusions(actor).length > 0 || (!!state.empowered && state.inv < state.max) || (prompt && !!regenerateItem(actor));
 }
 
 /**
+ * Whether the caster may reclaim this infusion at the start of the turn: it has a pool and either was
+ * created reclaimable or the caster has Stormlight Reclamation for its surge.
+ */
+export function canReclaim(actor: any, inf: Infusion): boolean {
+    if (drawsFromCaster(inf)) return false;
+    if (inf.reclaimable) return true;
+    if (isSquire(actor)) return false;
+    const effects = getMapping().talentEffects;
+    return actorTalents(actor).some((talent) =>
+        talentEffectsFor(talent, effects).some((e) => e.type === 'reclaimable' && e.surge === inf.surge),
+    );
+}
+
+const isDamaged = (actor: any): boolean => {
+    const health = actor?.system?.resources?.hea;
+    return Number(health?.value) < Number(health?.max?.value);
+};
+
+/**
  * Runs the turn-start flow for an actor on this client: prompt (optional), then add/end/reclaim and
- * the drain, then commit and chat.
+ * the drain, then commit and chat, then Regenerate if chosen.
  */
 export async function runTurnStart(actor: any, { prompt = getSetting('promptOnTurn') } = {}): Promise<void> {
     if (!actor) return;
@@ -38,19 +60,33 @@ export async function runTurnStart(actor: any, { prompt = getSetting('promptOnTu
         pending.set(actor.uuid, (pending.get(actor.uuid) ?? 0) + 1);
         return;
     }
-    if (!needsTurnStart(actor)) return;
+    if (!needsTurnStart(actor, prompt)) return;
     running.add(actor.uuid);
     try {
-        // Only your own upkeep is decided now; infusions on others just drain.
-        const asked = getInfusions(actor).filter(promptsAtStart);
-        let decisions: TurnDecisions = {};
-        if (prompt && asked.length) decisions = await TurnPrompt.ask(actor, asked, casterState(actor), 'start');
+        // Sustained infusions and upkeep are maintained or ended; infusions with a pool just drain, unless reclaimed.
+        const infusions = getInfusions(actor);
+        const asked = infusions.filter(promptsAtStart);
+        const reclaim = infusions.filter((inf) => canReclaim(actor, inf));
+        const regenerate = regenerateItem(actor) ? { damaged: isDamaged(actor) } : null;
+        let decisions: PromptResult = {};
+        if (prompt && (asked.length || reclaim.length || regenerate)) {
+            decisions = await TurnPrompt.ask(actor, asked, casterState(actor), 'start', { reclaim, regenerate });
+        }
 
         // Re-read: Investiture or infusions may have changed while the prompt was open.
-        const round = game.combat?.started ? game.combat.round : null;
-        const result = resolveTurnStart(casterState(actor), getInfusions(actor), decisions, { round });
-        await commit(actor, result, { chat: t('SCI.Chat.TurnStart') });
-        Hooks.callAll(MODULE_HOOKS.turnResolved, actor, result);
+        const current = getInfusions(actor);
+        if (current.length || casterState(actor).empowered) {
+            const round = game.combat?.started ? game.combat.round : null;
+            // Stormlight Reclamation from a talent the caster gained after creating the infusion.
+            const chosen = new Set(decisions.reclaim ?? []);
+            const withReclaim = current.map((inf) => (chosen.has(inf.id) && canReclaim(actor, inf) ? { ...inf, reclaimable: true } : inf));
+            const result = resolveTurnStart(casterState(actor), withReclaim, decisions, { round });
+            if (current.length || result.log.length) {
+                await commit(actor, result, { chat: true });
+                Hooks.callAll(MODULE_HOOKS.turnResolved, actor, result);
+            }
+        }
+        if (decisions.regenerate) await useRegenerate(actor);
     } finally {
         running.delete(actor.uuid);
     }
@@ -82,7 +118,7 @@ export async function runTurnEnd(
         let decisions: TurnDecisions = {};
         if (prompt && !free && state.inv >= 1) decisions = await TurnPrompt.ask(actor, asked, state, 'end');
         const result = resolveTurnEnd(casterState(actor), getInfusions(actor), decisions, { free, graceRound: round });
-        await commit(actor, result, { chat: t('SCI.Chat.TurnStart') });
+        await commit(actor, result, { chat: true });
     } finally {
         running.delete(key);
     }
@@ -177,18 +213,18 @@ async function onUpdateWorldTime(_worldTime: number, delta: number) {
         const infusions = getInfusions(actor);
         if (!infusions.length) continue;
         const result = advanceTime(casterState(actor), infusions, delta, { roundSeconds: freeTime ? 600 : null });
-        if (result.log.length) await commit(actor, result, { chat: t('SCI.Chat.TimePassed') });
+        if (result.log.length) await commit(actor, result, { chat: true });
     }
 }
 
-/** Spending Investiture elsewhere down to 0 makes the caster non-Invested: self infusions end. */
+/** Spending Investiture elsewhere down to 0 makes the caster non-Invested: sustained infusions end. */
 function onUpdateActor(actor: any, changes: any, options: any, userId: string) {
     if (userId !== game.user.id || options?.[UPDATE_OPTION]) return;
     if (changes?.system?.resources?.inv?.value === undefined) return;
     const infusions = getInfusions(actor);
-    if (!infusions.some((i) => i.kind === 'self')) return;
+    if (!infusions.some((i) => i.kind === 'self' && i.sustained)) return;
     const result = onInvestitureChanged(casterState(actor), infusions);
-    if (result.ended.length) void commit(actor, result, { chat: t('SCI.Chat.NonInvested') });
+    if (result.ended.length) void commit(actor, result, { chat: true });
 }
 
 export function initTurns() {
