@@ -23,8 +23,8 @@ export function getInfusions(actor: any): Infusion[] {
 }
 
 export interface CommitOptions {
-    /** Chat title; omit to skip the chat summary. */
-    chat?: string;
+    /** Post the Triggers chat card for the result's log. */
+    chat?: boolean;
 }
 
 /** Writes an engine result to the actor (or asks the GM to, if this user doesn't own it). */
@@ -51,7 +51,7 @@ export async function commit(actor: any, result: Pick<EngineResult, 'inv' | 'inf
     await syncMarkers(actor, before, result.infusions);
     await syncSubEffects(actor, before, result.infusions);
     await endUpkeepSideEffects(actor, result.ended ?? []);
-    if (options.chat) await postSummary(actor, options.chat, result.log, [...before, ...result.infusions]);
+    if (options.chat) await postSummary(actor, result.log, [...before, ...result.infusions]);
     Hooks.callAll(MODULE_HOOKS.changed, actor, result.infusions);
 }
 
@@ -64,7 +64,7 @@ export function initStore() {
         await commit(
             actor,
             { inv: payload.inv, infusions: parseInfusions(payload.infusions), ended: parseInfusions(payload.ended), log: payload.log as LogEntry[] },
-            { chat: payload.chat },
+            { chat: !!payload.chat },
         );
     });
 }

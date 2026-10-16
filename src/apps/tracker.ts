@@ -105,7 +105,7 @@ export class InfusionTracker extends HtmlApp {
                     const infusions = getInfusions(actor);
                     if (!infusions.length) continue;
                     const log = infusions.map((i) => ({ type: 'ended' as const, id: i.id, label: i.label, reason: 'manual' as const }));
-                    await commit(actor, { inv: casterState(actor).inv, infusions: [], ended: infusions, log }, { chat: t('SCI.Chat.SceneEnd') });
+                    await commit(actor, { inv: casterState(actor).inv, infusions: [], ended: infusions, log }, { chat: true });
                 }
                 break;
             }

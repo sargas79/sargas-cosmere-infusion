@@ -17,7 +17,7 @@ https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/mod
 ## Features
 
 - **Infusions on the sheet.** Two collapsible tables on the Effects tab, below Injuries:
-  - *Sustained Infusions*: the infusions you keep up, named by surge with your optional description under it, with target, duration (rounds left, or *Sustained* for self infusions), **+** (1 Investiture, 1 more round), details and a menu (edit, reclaim with Stormlight Reclamation, remove). Drain and double drain are in the GM tracker.
+  - *Sustained Infusions*: the infusions you keep up, named by surge with your optional description under it, with target, duration (rounds left, or *Sustained* for sustained self infusions and upkeep), **+** (1 Investiture, 1 more round), details and a menu (edit, reclaim with Stormlight Reclamation, remove). Drain and double drain are in the GM tracker.
   - *Active Infusions*: the infusions on this character, who they come from and how long they last, with their effects listed under them. Both tables show the same infusion, so a change or removal shows in both.
 
   The token HUD sun button opens the infusion list in a window.
@@ -26,11 +26,17 @@ https://github.com/sargas79/sargas-cosmere-infusion/releases/latest/download/mod
   - Extended Adhesion / Regrowth / Tension and Lingering Lightweavings: drain every N rounds.
   - Master of the Skies, Smooth Operator, Endless Illusions and Extended Tension: free while you're Invested.
   - Stormlight Reclamation, Distant Surgebinding / Through the Stone, Fine Control, the Physical Illusion, Group Flight, Aerial Squadron, Multiplicative Lightweaving and Multiple Lashings.
-- **Start of turn.** When a combatant activates their fast or slow turn in the tracker, their infusions drain once. If they keep self infusions or upkeep effects up, the player who owns the character first gets a window to **Maintain** or **End** each one. Closing the window maintains everything. The GM gets the window for adversaries and offline players.
+- **Sustained self infusions.** Infusing yourself offers a *Sustained* checkbox above *Investiture infused*. Sustained, the infusion has no pool: it spends its first Investiture when created and then costs the drain from your Investiture each turn you maintain it. Unchecked, it holds a pool like an object.
+- **Start of turn.** When a combatant activates their fast or slow turn in the tracker, their infusions drain once. The player who owns the character first gets a window with:
+  - **Maintain** / **End** for each sustained infusion and upkeep effect. Maintain is disabled when you can't pay for it; closing the window keeps everything you can pay for.
+  - **Keep** / **Reclaim** for infusions with a pool, when you have Stormlight Reclamation for their surge. Reclaiming ends the infusion after the drain and returns what is left.
+  - **Use** / **Do not use** for Regenerate, when the character has that action and is hurt. It is paid after the upkeep, so *Use* is preselected only when the Investiture left pays for it, and is disabled otherwise (ending an infusion in the same window frees Investiture for it). It uses the action without the system's consume dialog, spends its Investiture and applies the healing it rolls. If it spends the last Investiture, the window warns that sustained infusions end.
+
+  The GM gets the window for adversaries and offline players.
 - **Enhance at the end of the turn.** Enhance lasts until the end of the turn after the one it was used in. From then on, it asks *Maintain / End* when the character's turn ends (another combatant activates, or the round ends). No window when it's free (the *Speak the Second Ideal* goal is completed) or when there's no Investiture left (it ends).
-- **Chat summaries** list each infusion as *Surge on Target* (e.g. **Tension** on **Selaneth**: drained 1, 3 left).
+- **Chat summaries.** A *Triggers* card lists each infusion with its art, **Surge** on **Target**, and a short update in gray: *Drained 1 · 2 left*, *Maintained*, *Reclaimed 2*, *Ended: out of Investiture*, *Ended*.
 - **Rules handled:**
-  - Self infusions draw from your Investiture and end at 0 (non-Invested); infused pools keep running.
+  - Sustained infusions draw from your Investiture and end at 0 (non-Invested); infused pools (including self infusions with a pool) keep running.
   - Empowered refills Investiture before the drain.
   - Bosses drain once per round (configurable).
 - **Out of combat.** The GM tracker has a scene mode (combat, conversation, endeavor, free time) and an *Advance round* button. Advancing world time drains 10-minute (simple illusions) and daily (Shadesmar beads) infusions, and round infusions in free time.

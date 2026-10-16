@@ -93,11 +93,11 @@ export async function runListAction(action: string, actor: any, id: string): Pro
     switch (action) {
         case 'add': {
             const n = await askNumber(t('SCI.List.Add'), t('SCI.List.AddHow', { inv: state.inv }), 1);
-            if (n) await commit(actor, addInvestiture(state, getInfusions(actor), id, n), { chat: t('SCI.Chat.Changed') });
+            if (n) await commit(actor, addInvestiture(state, getInfusions(actor), id, n), { chat: true });
             break;
         }
         case 'reclaim':
-            await commit(actor, endInfusion(state, getInfusions(actor), id, { refund: true }), { chat: t('SCI.Chat.Changed') });
+            await commit(actor, endInfusion(state, getInfusions(actor), id, { refund: true }), { chat: true });
             break;
         case 'end': {
             const ok = await foundry.applications.api.DialogV2.confirm({
@@ -105,19 +105,19 @@ export async function runListAction(action: string, actor: any, id: string): Pro
                 content: `<p>${t('SCI.List.EndConfirm', { label: esc(infusionTitle(inf)) })}</p>`,
                 rejectClose: false,
             });
-            if (ok) await commit(actor, endInfusion(state, getInfusions(actor), id), { chat: t('SCI.Chat.Changed') });
+            if (ok) await commit(actor, endInfusion(state, getInfusions(actor), id), { chat: true });
             break;
         }
         case 'damage': {
             const n = await askNumber(t('SCI.List.Damage'), t('SCI.List.DamageHow'), 1);
-            if (n) await commit(actor, damageInfusion(state, getInfusions(actor), id, n), { chat: t('SCI.Chat.Changed') });
+            if (n) await commit(actor, damageInfusion(state, getInfusions(actor), id, n), { chat: true });
             break;
         }
         case 'drain': {
             const n = await askNumber(t('SCI.List.DrainExternal'), t('SCI.List.DrainHow'), 1);
             if (!n) break;
             const result = drainExternal(state, getInfusions(actor), id, n);
-            await commit(actor, result, { chat: t('SCI.Chat.DrainedExternal') });
+            await commit(actor, result, { chat: true });
             const receiver = transferTarget();
             if (receiver && result.drained > 0) {
                 const rs = casterState(receiver);

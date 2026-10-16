@@ -7,9 +7,11 @@ import {
     drainExternal,
     endInfusion,
     onInvestitureChanged,
+    regenerateBudget,
     durationLeft,
     resolveTurnEnd,
     resolveTurnStart,
+    upkeepCost,
 } from '@/core/engine';
 
 const inf = (data: InfusionInit) => normalizeInfusion({ id: data.label, ...data });
@@ -253,5 +255,68 @@ describe('durationLeft', () => {
     it('uses the caster for self infusions and is unlimited when free', () => {
         expect(durationLeft(inf({ label: 'd', kind: 'self' }), 4)).toBe(4);
         expect(durationLeft(inf({ label: 'e', kind: 'self', freeWhileInvested: true }), 4)).toBeNull();
+    });
+});
+
+describe('sustained infusions (#49)', () => {
+    it('self infusions saved without the flag are sustained; new ones can use a pool', () => {
+        expect(inf({ label: 'old', kind: 'self' }).sustained).toBe(true);
+        const pooled = inf({ label: 'pooled', kind: 'self', sustained: false, pool: 3 });
+        expect(pooled.sustained).toBe(false);
+        expect(pooled.pool).toBe(3);
+        expect(inf({ label: 'crate', sustained: true, pool: 2 }).sustained).toBe(false);
+    });
+
+    it('a self infusion with a pool drains its pool, not the caster, and survives 0 Investiture', () => {
+        const r = resolveTurnStart(caster(0), [inf({ label: 'pooled', kind: 'self', sustained: false, pool: 2 })]);
+        expect(r.inv).toBe(0);
+        expect(r.infusions[0].pool).toBe(1);
+    });
+
+    it('upkeepCost is what the caster pays at this drain', () => {
+        expect(upkeepCost(inf({ label: 's', kind: 'self' }), 3)).toBe(1);
+        expect(upkeepCost(inf({ label: 's', kind: 'self', drain: { multiplier: 2 } }), 3)).toBe(2);
+        expect(upkeepCost(inf({ label: 's', kind: 'self', freeWhileInvested: true }), 3)).toBe(0);
+        expect(upkeepCost(inf({ label: 's', kind: 'self', drain: { everyNRounds: 3, counter: 0 } }), 3)).toBe(0);
+        expect(upkeepCost(inf({ label: 'crate', pool: 3 }), 3)).toBe(0);
+    });
+});
+
+describe('Regenerate budget (#52)', () => {
+    const flight = () => inf({ label: 'flight', kind: 'self' });
+
+    it('is paid from what is left after the upkeep', () => {
+        // 1 Investiture: maintaining flight takes it, nothing is left for Regenerate.
+        expect(regenerateBudget(caster(1), [flight()]).affordable).toBe(false);
+        expect(regenerateBudget(caster(2), [flight()]).affordable).toBe(true);
+    });
+
+    it('ending or skipping the upkeep frees Investiture for it', () => {
+        expect(regenerateBudget(caster(1), [flight()], { end: ['flight'] }).affordable).toBe(true);
+        const enhance = inf({ label: 'tunnel', kind: 'upkeep' });
+        expect(regenerateBudget(caster(1), [enhance]).affordable).toBe(false);
+        expect(regenerateBudget(caster(1), [enhance], { skipUpkeep: ['tunnel'] }).affordable).toBe(true);
+    });
+
+    it('counts what a reclaim recovers and what Empowered refills', () => {
+        const crate = inf({ label: 'crate', pool: 3, reclaimable: true });
+        expect(regenerateBudget(caster(0), [crate]).affordable).toBe(false);
+        expect(regenerateBudget(caster(0), [crate], { reclaim: ['crate'] }).affordable).toBe(true);
+        expect(regenerateBudget(caster(1, 5, true), [flight()]).affordable).toBe(true);
+    });
+
+    it('pools drain on their own and do not cost the caster', () => {
+        expect(regenerateBudget(caster(1), [inf({ label: 'crate', pool: 2 })]).affordable).toBe(true);
+    });
+
+    it('warns when it spends the last Investiture while sustained infusions are kept', () => {
+        expect(regenerateBudget(caster(2), [flight()])).toEqual({ affordable: true, endsSustained: true });
+        expect(regenerateBudget(caster(3), [flight()])).toEqual({ affordable: true, endsSustained: false });
+        expect(regenerateBudget(caster(1), [])).toEqual({ affordable: true, endsSustained: false });
+    });
+
+    it("uses the action's own cost", () => {
+        expect(regenerateBudget(caster(2), [flight()], {}, {}, 2).affordable).toBe(false);
+        expect(regenerateBudget(caster(0), [], {}, {}, 0).affordable).toBe(true);
     });
 });

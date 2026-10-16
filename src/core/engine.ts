@@ -5,8 +5,8 @@
  * Rules implemented (Stormlight Handbook, ch. 5-6):
  * - Infusions usually drain 1 Investiture at the start of the caster's turn.
  * - Object/character infusions drain their own pool and end at 0.
- * - Self infusions draw from the caster's current Investiture; at 0 the caster becomes
- *   non-Invested and can't maintain them.
+ * - Sustained (self) infusions draw from the caster's current Investiture; at 0 the caster becomes
+ *   non-Invested and can't maintain them. Self infusions with a pool drain it like objects.
  * - At the start of the turn, before the drain, the caster may add Investiture to infusions.
  * - Stormlight Reclamation ends an infusion after the drain and recovers what is left.
  */
@@ -129,11 +129,11 @@ function drainOnce(w: Working, inf: Infusion) {
     if (inf.pool <= 0) w.end(inf, 'pool-empty');
 }
 
-/** At 0 Investiture the caster is non-Invested: self infusions end (pools keep running). */
+/** At 0 Investiture the caster is non-Invested: sustained infusions end (pools keep running). */
 function endSelfIfNonInvested(w: Working) {
     if (w.inv > 0) return;
     for (const inf of [...w.alive.values()]) {
-        if (inf.kind === 'self') w.end(inf, 'non-invested');
+        if (inf.kind === 'self' && inf.sustained) w.end(inf, 'non-invested');
     }
 }
 
@@ -206,6 +206,35 @@ export function resolveTurnStart(
     return w.result();
 }
 
+/** Investiture the Regenerate action costs (Stormlight Handbook, ch. 5). */
+export const REGENERATE_COST = 1;
+
+export interface RegenerateBudget {
+    /** Enough Investiture is left after the turn-start upkeep to pay for Regenerate. */
+    affordable: boolean;
+    /** Paying for Regenerate spends the last Investiture: the caster becomes non-Invested and sustained infusions end. */
+    endsSustained: boolean;
+}
+
+/**
+ * Whether Regenerate can be paid at the start of the turn. It is used after the drain, so it is paid
+ * from what is left once the caster's decisions (maintain, end, reclaim) are resolved.
+ */
+export function regenerateBudget(
+    caster: CasterState,
+    infusions: Infusion[],
+    decisions: TurnDecisions = {},
+    options: TurnOptions = {},
+    cost = REGENERATE_COST,
+): RegenerateBudget {
+    const after = resolveTurnStart(caster, infusions, decisions, options);
+    const left = after.inv - cost;
+    return {
+        affordable: left >= 0,
+        endsSustained: left === 0 && after.infusions.some((inf) => inf.kind === 'self' && inf.sustained),
+    };
+}
+
 export interface TurnEndOptions {
     /** Upkeep is free this turn (Speak the Second Ideal makes Enhance free). */
     free?: boolean;
@@ -239,6 +268,17 @@ export function resolveTurnEnd(
     }
     endSelfIfNonInvested(w);
     return w.result();
+}
+
+/**
+ * Investiture a sustained infusion or upkeep effect will take from the caster at this turn's drain: 0
+ * while it waits for its every-N-rounds drain, is free while Invested, or doesn't drain each round.
+ */
+export function upkeepCost(inf: Infusion, casterInv: number): number {
+    if (!drawsFromCaster(inf) || inf.drain.cadence !== 'round') return 0;
+    if (inf.drain.counter + 1 < inf.drain.everyNRounds) return 0;
+    if (inf.freeWhileInvested && casterInv >= 1) return 0;
+    return Math.max(0, inf.drain.amount * inf.drain.multiplier);
 }
 
 /**
