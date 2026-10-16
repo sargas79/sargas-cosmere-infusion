@@ -106,8 +106,8 @@ export function summaryLines(log: LogEntry[], infusions: Infusion[], casterName:
 }
 
 /** A card section with the system's markup, so it picks up the Skill Test header style. */
-export function cardSection(title: string, icon: string, body: string, type = ''): string {
-    return `<section class="chat-card-section ${type}"><div class="section-header"><span class="title"><i class="${icon}"></i>${esc(title)}</span></div>${body}</section>`;
+export function cardSection(title: string, icon: string, body: string): string {
+    return `<section class="chat-card-section"><div class="section-header"><span class="title"><i class="${icon}"></i>${esc(title)}</span></div>${body}</section>`;
 }
 
 export async function postSummary(actor: any, title: string, log: LogEntry[], infusions: Infusion[]) {

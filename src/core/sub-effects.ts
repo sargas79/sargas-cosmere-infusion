@@ -209,10 +209,10 @@ async function rollRegrowth(actor: any) {
             // The system's healing roll, so the card matches its own (Healing section, apply buttons).
             const DamageRoll = CONFIG.Dice.rolls.find((R: any) => R.name === 'DamageRoll');
             const roll = await (DamageRoll ? new DamageRoll(formula, data, { damageType: 'heal' }) : new Roll(formula, data)).evaluate();
-            await roll.toMessage({
-                speaker: ChatMessage.getSpeaker({ actor }),
-                flags: { [SYSTEM_ID]: { message: { type: 'action', description: regrowthHeader(caster, inf) } } },
-            });
+            const speaker = ChatMessage.getSpeaker({ actor });
+            // The system card replaces the message content, so only use it when it can show the roll.
+            if (DamageRoll) await roll.toMessage({ speaker, flags: { [SYSTEM_ID]: { message: { type: 'action', description: regrowthHeader(caster, inf) } } } });
+            else await roll.toMessage({ speaker, flavor: `${t('SCI.Surge.prg')}: ${t('SCI.Chat.Regrowth', { caster: caster.name })}` });
             if (typeof actor.applyHealing === 'function') await actor.applyHealing(roll.total);
         } catch (err) {
             warn(`Regrowth formula "${formula}" failed`, err);
